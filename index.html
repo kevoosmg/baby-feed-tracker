@@ -216,6 +216,7 @@
   .v-due { background: var(--warn-light); color: var(--warn); }
   .v-skip { background: #F0F0F0; color: var(--text-light); }
   .v-tomorrow { background: var(--blue-light); color: var(--blue); }
+  .v-today { background: var(--orange-light); color: var(--orange); }
 
   /* Today's Log */
   .log-card {
@@ -232,10 +233,19 @@
     border-bottom: 1px solid #F5F5F5;
   }
   .log-title { font-size: 15px; font-weight: 700; }
-  .log-stats { display: flex; gap: 12px; }
-  .log-stat { text-align: center; }
-  .log-stat-num { font-size: 18px; font-weight: 700; color: var(--pink); display: block; }
-  .log-stat-label { font-size: 10px; color: var(--text-light); }
+
+  .baby-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 14px; }
+  .baby-stat-card {
+    background: #FAFAFA;
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .baby-stat-card .stat-baby-name { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .baby-stat-card.big .stat-baby-name { color: #FF6B9D; }
+  .baby-stat-card.small .stat-baby-name { color: #4FACFE; }
+  .baby-stat-card .stat-nums { font-size: 12px; color: var(--text-light); }
+  .baby-stat-card .stat-nums strong { color: var(--text); font-size: 15px; }
 
   .log-list { padding: 8px 0; max-height: 260px; overflow-y: auto; }
   .log-entry {
@@ -254,10 +264,13 @@
   }
   .dot-big { background: #FF6B9D; }
   .dot-small { background: #4FACFE; }
+  .dot-pee { background: #4FACFE; }
+  .dot-poo { background: #8B4513; }
   .log-time { font-size: 12px; color: var(--text-light); width: 42px; flex-shrink: 0; }
   .log-who { font-size: 13px; font-weight: 600; width: 28px; flex-shrink: 0; }
   .log-amount { font-size: 13px; color: var(--text); flex: 1; }
   .log-note { font-size: 11px; color: var(--text-light); flex: 1; font-style: italic; }
+  .log-diaper-type { font-size: 12px; color: var(--text-light); flex: 1; }
   .log-del {
     width: 22px;
     height: 22px;
@@ -390,6 +403,27 @@
     background: var(--pink-light);
   }
 
+  /* Feed Type Tabs */
+  .feed-type-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .feed-type-tab {
+    flex: 1;
+    border: 2px solid #EEE;
+    border-radius: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    background: white;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .feed-type-tab.active {
+    border-color: var(--pink);
+    color: var(--pink);
+    background: var(--pink-light);
+  }
+
   .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
   .btn-cancel {
     border: 2px solid #EEE;
@@ -414,6 +448,43 @@
   }
   .btn-confirm:active { transform: scale(0.97); }
 
+  /* Diaper Button */
+  .btn-diaper {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.1s;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+    background: #F0F0F0;
+    color: var(--text-light);
+  }
+  .btn-diaper:active { transform: scale(0.96); opacity: 0.85; }
+  .baby-card.big .btn-diaper:hover { background: #FFE0EC; color: #FF6B9D; }
+  .baby-card.small .btn-diaper:hover { background: #E0F2FE; color: #4FACFE; }
+
+  /* Diaper Modal */
+  .diaper-type-tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+  .diaper-type-tab {
+    flex: 1;
+    border: 2px solid #EEE;
+    border-radius: 12px;
+    padding: 16px 0;
+    font-size: 15px;
+    font-weight: 700;
+    background: white;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .diaper-type-tab.active-pee { border-color: #4FACFE; color: #4FACFE; background: #E0F2FE; }
+  .diaper-type-tab.active-poo { border-color: #8B4513; color: #8B4513; background: #FFF8E1; }
+
   /* Toast */
   .toast {
     position: fixed;
@@ -435,6 +506,52 @@
   .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+
+  /* Celebration Overlay */
+  .celebration-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 350;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: celeFade 2.8s ease forwards;
+  }
+  .celebration-text {
+    font-size: 26px;
+    font-weight: 700;
+    color: #FF6B9D;
+    text-shadow: 0 2px 16px rgba(255,107,157,0.35);
+    animation: celeText 2.8s ease forwards;
+    z-index: 2;
+    position: relative;
+  }
+  .heart-particle {
+    position: absolute;
+    opacity: 0;
+    z-index: 1;
+    animation: heartBurst 2.8s ease forwards;
+  }
+  @keyframes celeFade {
+    0% { opacity: 0; }
+    8% { opacity: 1; }
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes celeText {
+    0% { opacity: 0; transform: scale(0.4); }
+    12% { opacity: 1; transform: scale(1.12); }
+    28% { transform: scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: scale(0.88); }
+  }
+  @keyframes heartBurst {
+    0% { opacity: 0; transform: translate(0,0) scale(0.2) rotate(0deg); }
+    8% { opacity: 1; }
+    65% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--hx), var(--hy)) scale(1.1) rotate(var(--hr)); }
   }
 
   /* Tab Bar */
@@ -478,6 +595,15 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+  .history-baby-stats { display: flex; gap: 10px; padding: 4px 0 8px; flex-wrap: wrap; }
+  .history-baby-stat {
+    font-size: 12px;
+    color: var(--text-light);
+    padding: 3px 8px;
+    background: #F8F9FA;
+    border-radius: 6px;
+  }
+  .history-baby-stat strong { color: var(--text); }
 
   /* Vitamin confirm modal adjustments */
   .vitamin-confirm-info {
@@ -536,6 +662,7 @@
           <span class="status-badge status-none" id="status-big">未开始</span>
         </div>
         <button class="btn-feed" onclick="openFeedModal('big')">记录喂奶</button>
+        <button class="btn-diaper" onclick="openDiaperModal('big')">🧷 换尿布</button>
       </div>
 
       <!-- 小宝 -->
@@ -557,6 +684,7 @@
           <span class="status-badge status-none" id="status-small">未开始</span>
         </div>
         <button class="btn-feed" onclick="openFeedModal('small')">记录喂奶</button>
+        <button class="btn-diaper" onclick="openDiaperModal('small')">🧷 换尿布</button>
       </div>
     </div>
   </div>
@@ -589,18 +717,9 @@
     <div class="section-title">今日记录</div>
     <div class="log-card">
       <div class="log-header">
-        <div class="log-title">📋 今日喂奶</div>
-        <div class="log-stats">
-          <div class="log-stat">
-            <span class="log-stat-num" id="stat-count">0</span>
-            <span class="log-stat-label">次</span>
-          </div>
-          <div class="log-stat">
-            <span class="log-stat-num" id="stat-amount">0</span>
-            <span class="log-stat-label">ml</span>
-          </div>
-        </div>
+        <div class="log-title">📋 今日记录</div>
       </div>
+      <div class="baby-stats-row" id="babyStatsRow"></div>
       <div class="log-list" id="todayLog"></div>
       <button class="btn-copy" onclick="copyToClipboard()">📋 复制今日记录 发群</button>
     </div>
@@ -648,6 +767,13 @@
       <input type="number" class="form-input" id="feedAmount" placeholder="或手动输入" min="0" max="400" inputmode="numeric">
     </div>
     <div class="form-group">
+      <label class="form-label">喂奶类型</label>
+      <div class="feed-type-tabs">
+        <button class="feed-type-tab active" id="tab-formula" onclick="selectFeedType(this, 'formula')">🍼 奶粉</button>
+        <button class="feed-type-tab" id="tab-breast" onclick="selectFeedType(this, 'breast')">🤱 母乳</button>
+      </div>
+    </div>
+    <div class="form-group">
       <label class="form-label">时间（可调整）</label>
       <input type="datetime-local" class="form-input" id="feedTime">
     </div>
@@ -658,6 +784,22 @@
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeFeedModal()">取消</button>
       <button class="btn-confirm" onclick="confirmFeed()">确认记录</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diaper Modal -->
+<div class="modal-overlay" id="diaperModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="diaperModalTitle">记录尿布</div>
+    <div class="diaper-type-tabs">
+      <button class="diaper-type-tab active-pee" id="tab-pee" onclick="selectDiaperType(this, 'pee')">💧 小便</button>
+      <button class="diaper-type-tab" id="tab-poo" onclick="selectDiaperType(this, 'poo')">💩 大便</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDiaperModal()">取消</button>
+      <button class="btn-confirm" id="diaperConfirmBtn" onclick="confirmDiaper()">确认记录</button>
     </div>
   </div>
 </div>
@@ -690,6 +832,7 @@ const INTERVAL_MS = 2.5 * 60 * 60 * 1000; // 2.5 hours
 
 // In-memory cache
 let cachedRecords = {};
+let cachedDiaper = {};
 let cachedLastFeed = {};
 let cachedVitamin = {};
 
@@ -704,15 +847,17 @@ function loadFromCache() {
   try {
     const c = JSON.parse(localStorage.getItem('babyFeed_cache') || '{}');
     cachedRecords = c.records || {};
+    cachedDiaper = c.diaper || {};
     cachedLastFeed = c.lastFeed || {};
     cachedVitamin = c.vitamin || {};
-  } catch(e) { cachedRecords = {}; cachedLastFeed = {}; cachedVitamin = {}; }
+  } catch(e) { cachedRecords = {}; cachedDiaper = {}; cachedLastFeed = {}; cachedVitamin = {}; }
 }
 
 async function loadAllData() {
   const client = sb();
   if (!client) { loadFromCache(); return; }
   try {
+    // Load feed records
     const { data: feeds } = await client.from('feed_records').select('*').order('time', { ascending: true });
     cachedRecords = {};
     const lf = {};
@@ -726,6 +871,7 @@ async function loadAllData() {
           baby: r.baby,
           time: new Date(r.time).getTime(),
           amount: r.amount,
+          feed_type: r.feed_type || 'formula',
           note: r.note || ''
         });
         lf[r.baby] = Math.max(lf[r.baby] || 0, new Date(r.time).getTime());
@@ -733,6 +879,24 @@ async function loadAllData() {
     }
     cachedLastFeed = lf;
 
+    // Load diaper records
+    const { data: diapers } = await client.from('diaper_records').select('*').order('time', { ascending: true });
+    cachedDiaper = {};
+    if (diapers) {
+      diapers.forEach(r => {
+        const d = new Date(r.time);
+        const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!cachedDiaper[dk]) cachedDiaper[dk] = [];
+        cachedDiaper[dk].push({
+          id: r.id,
+          baby: r.baby,
+          type: r.type,
+          time: new Date(r.time).getTime()
+        });
+      });
+    }
+
+    // Load vitamin records
     const { data: vits } = await client.from('vitamin_records').select('*');
     cachedVitamin = {};
     if (vits) {
@@ -740,7 +904,7 @@ async function loadAllData() {
     }
 
     localStorage.setItem('babyFeed_cache', JSON.stringify({
-      records: cachedRecords, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+      records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
     }));
   } catch(e) {
     console.warn('Supabase load failed, using cache', e);
@@ -758,6 +922,9 @@ function setupRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'vitamin_records' }, () => {
       loadAllData().then(refreshAll);
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'diaper_records' }, () => {
+      loadAllData().then(refreshAll);
+    })
     .subscribe();
 }
 
@@ -772,6 +939,10 @@ function getRecords(dateKey) {
   return cachedRecords[dateKey] || [];
 }
 
+function getDiaper(dateKey) {
+  return cachedDiaper[dateKey] || [];
+}
+
 async function saveRecord(dateKey, record) {
   const client = sb();
   if (!client) { showToast('连接未就绪，请刷新重试'); return; }
@@ -779,6 +950,7 @@ async function saveRecord(dateKey, record) {
     baby: record.baby,
     time: new Date(record.time).toISOString(),
     amount: record.amount,
+    feed_type: record.feed_type || 'formula',
     note: record.note || ''
   }).select();
   if (error) { showToast('保存失败: ' + error.message); return; }
@@ -789,6 +961,7 @@ async function saveRecord(dateKey, record) {
       baby: record.baby,
       time: record.time,
       amount: record.amount,
+      feed_type: record.feed_type || 'formula',
       note: record.note || ''
     });
     cachedRecords[dateKey].sort((a, b) => a.time - b.time);
@@ -804,6 +977,37 @@ async function deleteRecord(dateKey, idx) {
   const { error } = await client.from('feed_records').delete().eq('id', rec.id);
   if (error) { showToast('删除失败: ' + error.message); return false; }
   cachedRecords[dateKey].splice(idx, 1);
+  return true;
+}
+
+async function saveDiaperRecord(dateKey, record) {
+  const client = sb();
+  if (!client) { showToast('连接未就绪'); return; }
+  const { data, error } = await client.from('diaper_records').insert({
+    baby: record.baby,
+    type: record.type,
+    time: new Date(record.time).toISOString()
+  }).select();
+  if (error) { showToast('保存失败: ' + error.message); return; }
+  if (data && data[0]) {
+    if (!cachedDiaper[dateKey]) cachedDiaper[dateKey] = [];
+    cachedDiaper[dateKey].push({
+      id: data[0].id,
+      baby: record.baby,
+      type: record.type,
+      time: record.time
+    });
+  }
+}
+
+async function deleteDiaperRecord(dateKey, idx) {
+  const rec = cachedDiaper[dateKey]?.[idx];
+  if (!rec || !rec.id) { showToast('无法删除'); return false; }
+  const client = sb();
+  if (!client) { showToast('连接未就绪'); return false; }
+  const { error } = await client.from('diaper_records').delete().eq('id', rec.id);
+  if (error) { showToast('删除失败: ' + error.message); return false; }
+  cachedDiaper[dateKey].splice(idx, 1);
   return true;
 }
 
@@ -941,16 +1145,16 @@ function getVitaminStatus(type) {
 
   if (type === 'd3') {
     if (v.d3 === today) return 'done';
-    // Check if it's an "off day" (every other day)
-    if (v.d3) {
-      const lastDate = new Date(v.d3);
-      const todayDate = new Date(today);
-      const diffDays = Math.round((todayDate - lastDate) / 86400000);
-      if (diffDays === 1) return 'tomorrow'; // yesterday was the day, today skip
-      if (diffDays >= 2) return 'due';
-      return 'done';
-    }
-    return 'due';
+    if (!v.d3) return 'today'; // never taken, show "今天服用"
+    // Timezone-safe day diff: parse YYYY-MM-DD as local midnight
+    const [ly, lm, ld] = v.d3.split('-').map(Number);
+    const [ty, tm, td] = today.split('-').map(Number);
+    const lastMidnight = new Date(ly, lm - 1, ld).getTime();
+    const todayMidnight = new Date(ty, tm - 1, td).getTime();
+    const diffDays = Math.round((todayMidnight - lastMidnight) / 86400000);
+    if (diffDays === 1) return 'tomorrow'; // last was yesterday, today = skip day
+    if (diffDays >= 2) return 'today';  // 2+ days since last, time to take
+    return 'done';
   }
 }
 
@@ -965,6 +1169,7 @@ function updateVitaminUI() {
     el.className = 'vitamin-status';
     if (status === 'done') { el.className += ' v-done'; el.textContent = '✓ 已服用'; }
     else if (status === 'due') { el.className += ' v-due'; el.textContent = '⚡ 待服用'; }
+    else if (status === 'today') { el.className += ' v-today'; el.textContent = '💊 今天服用'; }
     else if (status === 'tomorrow') { el.className += ' v-tomorrow'; el.textContent = '明天服用'; }
     else { el.className += ' v-skip'; el.textContent = '今日跳过'; }
   }
@@ -1008,17 +1213,54 @@ async function confirmVitamin() {
   showToast(`${name} 已记录 ✓`);
 }
 
+// ========== CELEBRATION ==========
+function showCelebration() {
+  const overlay = document.createElement('div');
+  overlay.className = 'celebration-overlay';
+
+  const text = document.createElement('div');
+  text.className = 'celebration-text';
+  text.textContent = '辛苦啦麻麻 \uD83D\uDC95';
+  overlay.appendChild(text);
+
+  const hearts = ['\uD83D\uDC95','\u2764\uFE0F','\uD83D\uDC97','\uD83D\uDC96','\uD83D\uDC9D','\uD83C\uDFB7','\u2665\uFE0F','\uD83D\uDC93','\uD83D\uDC92','\uD83C\uDFB5','\uD83C\uDFB6','\uD83D\uDC9E'];
+  for (let i = 0; i < 20; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'heart-particle';
+    heart.textContent = hearts[i % hearts.length];
+    heart.style.left = '50%';
+    heart.style.top = '50%';
+    const angle = (i / 20) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+    const dist = 90 + Math.random() * 130;
+    heart.style.setProperty('--hx', Math.cos(angle) * dist + 'px');
+    heart.style.setProperty('--hy', Math.sin(angle) * dist + 'px');
+    heart.style.setProperty('--hr', Math.random() * 360 + 'deg');
+    heart.style.animationDelay = Math.random() * 0.35 + 's';
+    heart.style.fontSize = (16 + Math.random() * 14) + 'px';
+    overlay.appendChild(heart);
+  }
+
+  document.body.appendChild(overlay);
+  setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 3200);
+}
+
 // ========== FEED MODAL ==========
 let currentFeedBaby = null;
+let currentFeedType = 'formula';
+
 function openFeedModal(baby) {
   currentFeedBaby = baby;
+  currentFeedType = 'formula';
   const name = baby === 'big' ? '大宝' : '小宝';
   document.getElementById('feedModalTitle').textContent = `🍼 记录${name}喂奶`;
   document.getElementById('feedAmount').value = '';
   document.getElementById('feedNote').value = '';
   document.getElementById('feedTime').value = toLocalDatetimeValue(Date.now());
-  // Reset presets
+  // Reset preset buttons
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  // Reset feed type tabs
+  document.getElementById('tab-formula').classList.add('active');
+  document.getElementById('tab-breast').classList.remove('active');
   document.getElementById('feedModal').classList.add('show');
 }
 function closeFeedModal() {
@@ -1029,6 +1271,12 @@ function selectPreset(btn, val) {
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('feedAmount').value = val;
+}
+function selectFeedType(btn, type) {
+  currentFeedType = type;
+  document.getElementById('tab-formula').classList.remove('active');
+  document.getElementById('tab-breast').classList.remove('active');
+  btn.classList.add('active');
 }
 async function confirmFeed() {
   const amountRaw = document.getElementById('feedAmount').value;
@@ -1052,6 +1300,7 @@ async function confirmFeed() {
     baby: currentFeedBaby,
     time: ts,
     amount: amount,
+    feed_type: currentFeedType,
     note: note
   };
 
@@ -1063,7 +1312,14 @@ async function confirmFeed() {
   renderTodayLog();
 
   const name = currentFeedBaby === 'big' ? '大宝' : '小宝';
-  showToast(`${name} 喝了 ${amount}ml ✓`);
+  const typeLabel = currentFeedType === 'formula' ? '奶粉' : '母乳';
+  showToast(`${name} ${typeLabel} ${amount}ml ✓`);
+
+  // Celebration!
+  showCelebration();
+
+  // Celebration!
+  showCelebration();
 
   // Request notification permission
   if (Notification.permission === 'default') {
@@ -1071,41 +1327,143 @@ async function confirmFeed() {
   }
 }
 
+// ========== DIAPER MODAL ==========
+let currentDiaperBaby = null;
+let currentDiaperType = 'pee';
+
+function openDiaperModal(baby) {
+  currentDiaperBaby = baby;
+  currentDiaperType = 'pee';
+  const name = baby === 'big' ? '大宝' : '小宝';
+  document.getElementById('diaperModalTitle').textContent = `🧷 记录${name}换尿布`;
+  document.getElementById('tab-pee').classList.add('active-pee');
+  document.getElementById('tab-pee').classList.remove('active-poo');
+  document.getElementById('tab-poo').classList.remove('active-pee');
+  document.getElementById('tab-poo').classList.add('active-poo');
+  document.getElementById('diaperModal').classList.add('show');
+}
+function closeDiaperModal() {
+  document.getElementById('diaperModal').classList.remove('show');
+  currentDiaperBaby = null;
+}
+function selectDiaperType(btn, type) {
+  currentDiaperType = type;
+  document.getElementById('tab-pee').classList.remove('active-pee', 'active-poo');
+  document.getElementById('tab-poo').classList.remove('active-pee', 'active-poo');
+  btn.classList.add(`active-${type}`);
+}
+async function confirmDiaper() {
+  if (!currentDiaperBaby) return;
+  const now = Date.now();
+  const today = todayKey();
+  const recordDate = new Date(now);
+  const recordDateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth()+1).padStart(2,'0')}-${String(recordDate.getDate()).padStart(2,'0')}`;
+
+  const record = {
+    baby: currentDiaperBaby,
+    type: currentDiaperType,
+    time: now
+  };
+
+  await saveDiaperRecord(recordDateKey, record);
+
+  closeDiaperModal();
+  renderTodayLog();
+
+  const name = currentDiaperBaby === 'big' ? '大宝' : '小宝';
+  const typeLabel = currentDiaperType === 'pee' ? '小便' : '大便';
+  showToast(`${name} ${typeLabel} ✓`);
+
+  // Celebration!
+  showCelebration();
+}
+
 // ========== LOG RENDER ==========
 function renderTodayLog() {
   const today = todayKey();
   const records = getRecords(today);
+  const diapers = getDiaper(today);
   const container = document.getElementById('todayLog');
 
-  let totalCount = records.length;
-  let totalAmount = records.reduce((s, r) => s + r.amount, 0);
+  // Update baby stats
+  renderBabyStats(today);
 
-  document.getElementById('stat-count').textContent = totalCount;
-  document.getElementById('stat-amount').textContent = totalAmount;
+  // Merge feed and diaper records, sort by time
+  const allEntries = [];
 
-  if (records.length === 0) {
+  records.forEach((r, i) => {
+    allEntries.push({ type: 'feed', data: r, idx: i });
+  });
+  diapers.forEach((d, i) => {
+    allEntries.push({ type: 'diaper', data: d, idx: i });
+  });
+
+  allEntries.sort((a, b) => a.data.time - b.data.time);
+
+  if (allEntries.length === 0) {
     container.innerHTML = '<div class="log-empty">今天还没有记录<br>喂完第一顿点击"记录喂奶"📝</div>';
     return;
   }
 
-  container.innerHTML = records.map((r, i) => {
-    const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
-    const who = r.baby === 'big' ? '大宝' : '小宝';
-    return `
+  container.innerHTML = allEntries.map(entry => {
+    if (entry.type === 'feed') {
+      const r = entry.data;
+      const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+      const who = r.baby === 'big' ? '大宝' : '小宝';
+      const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
+      const noteStr = r.note ? ` (${r.note})` : '';
+      const typeStr = typeLabel ? ` ${typeLabel}` : '';
+      return `
       <div class="log-entry">
         <div class="log-dot ${dotClass}"></div>
         <div class="log-time">${fmtTime(r.time)}</div>
         <div class="log-who">${who}</div>
-        <div class="log-amount">${r.amount}ml</div>
-        <div class="log-note">${r.note || ''}</div>
-        <button class="log-del" onclick="delRecord('${today}',${i})" title="删除">×</button>
-      </div>
-    `;
+        <div class="log-amount">${r.amount}ml${typeStr}${noteStr}</div>
+        <button class="log-del" onclick="delFeedRecord('${today}',${entry.idx})" title="删除">×</button>
+      </div>`;
+    } else {
+      const d = entry.data;
+      const dotClass = d.type === 'pee' ? 'dot-pee' : 'dot-poo';
+      const who = d.baby === 'big' ? '大宝' : '小宝';
+      const typeLabel = d.type === 'pee' ? '小便' : '大便';
+      return `
+      <div class="log-entry">
+        <div class="log-dot ${dotClass}"></div>
+        <div class="log-time">${fmtTime(d.time)}</div>
+        <div class="log-who">${who}</div>
+        <div class="log-diaper-type">🧷 ${typeLabel}</div>
+        <button class="log-del" onclick="delDiaperRecord('${today}',${entry.idx})" title="删除">×</button>
+      </div>`;
+    }
   }).join('');
 }
 
-async function delRecord(dateKey, idx) {
-  if (!confirm('确认删除这条记录？')) return;
+function renderBabyStats(dateKey) {
+  const records = getRecords(dateKey);
+  const container = document.getElementById('babyStatsRow');
+
+  const bigRecs = records.filter(r => r.baby === 'big');
+  const smallRecs = records.filter(r => r.baby === 'small');
+
+  const bigCount = bigRecs.length;
+  const bigTotal = bigRecs.reduce((s, r) => s + r.amount, 0);
+  const smallCount = smallRecs.length;
+  const smallTotal = smallRecs.reduce((s, r) => s + r.amount, 0);
+
+  container.innerHTML = `
+    <div class="baby-stat-card big">
+      <div class="stat-baby-name">👶 大宝</div>
+      <div class="stat-nums"><strong>${bigCount}</strong> 次 · <strong>${bigTotal}</strong> ml</div>
+    </div>
+    <div class="baby-stat-card small">
+      <div class="stat-baby-name">🐣 小宝</div>
+      <div class="stat-nums"><strong>${smallCount}</strong> 次 · <strong>${smallTotal}</strong> ml</div>
+    </div>
+  `;
+}
+
+async function delFeedRecord(dateKey, idx) {
+  if (!confirm('确认删除这条喂奶记录？')) return;
   const ok = await deleteRecord(dateKey, idx);
   if (ok === false) return;
 
@@ -1123,10 +1481,20 @@ async function delRecord(dateKey, idx) {
   showToast('已删除');
 }
 
+async function delDiaperRecord(dateKey, idx) {
+  if (!confirm('确认删除这条尿布记录？')) return;
+  const ok = await deleteDiaperRecord(dateKey, idx);
+  if (ok === false) return;
+
+  renderTodayLog();
+  showToast('已删除');
+}
+
 // ========== COPY ==========
 function copyToClipboard() {
   const today = todayKey();
   const records = getRecords(today);
+  const diapers = getDiaper(today);
   const vitamin = getVitamin();
 
   const d = new Date();
@@ -1136,9 +1504,9 @@ function copyToClipboard() {
 
   let lines = [];
   lines.push(`🍼 ${dateStr}（${weekStr}）喂奶记录`);
-  lines.push('═══════════════════');
+  lines.push('═════════════════');
 
-  if (records.length === 0) {
+  if (records.length === 0 && diapers.length === 0) {
     lines.push('今日暂无记录');
   } else {
     let bigCount = 0, bigTotal = 0;
@@ -1146,11 +1514,22 @@ function copyToClipboard() {
 
     records.forEach((r, i) => {
       const who = r.baby === 'big' ? '大宝' : '小宝';
+      const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
       const noteStr = r.note ? ` (${r.note})` : '';
-      lines.push(`${String(i+1).padStart(2,'0')}. ${fmtTime(r.time)} ${who} ${r.amount}ml${noteStr}`);
+      lines.push(`${String(i+1).padStart(2,'0')}. ${fmtTime(r.time)} ${who} ${r.amount}ml${typeLabel}${noteStr}`);
       if (r.baby === 'big') { bigCount++; bigTotal += r.amount; }
       else { smallCount++; smallTotal += r.amount; }
     });
+
+    if (diapers.length > 0) {
+      lines.push('───────────────────');
+      lines.push('🧷 尿布记录：');
+      diapers.forEach(d => {
+        const who = d.baby === 'big' ? '大宝' : '小宝';
+        const typeLabel = d.type === 'pee' ? '小便' : '大便';
+        lines.push(`  ${fmtTime(d.time)} ${who} ${typeLabel}`);
+      });
+    }
 
     lines.push('───────────────────');
     lines.push(`大宝：${bigCount}次 共${bigTotal}ml`);
@@ -1161,7 +1540,7 @@ function copyToClipboard() {
   lines.push('───────────────────');
   const adDone = vitamin.ad === today;
   const d3Status = getVitaminStatus('d3');
-  const d3Text = d3Status === 'done' ? '✓ 已服用' : (d3Status === 'tomorrow' ? '（今日跳过）' : '✗ 未服用');
+  const d3Text = d3Status === 'done' ? '✓ 已服用' : (d3Status === 'tomorrow' ? '（今日跳过）' : '💊 今天服用');
   lines.push(`维生素AD：${adDone ? '✓ 已服用' : '✗ 未服用'}`);
   lines.push(`维生素D3：${d3Text}`);
 
@@ -1196,6 +1575,7 @@ function fallbackCopy(text) {
 // ========== HISTORY ==========
 function renderHistory() {
   const records = cachedRecords;
+  const diapers = cachedDiaper;
   const today = todayKey();
 
   const container = document.getElementById('historyList');
@@ -1207,24 +1587,62 @@ function renderHistory() {
   }
 
   container.innerHTML = allDates.map(dateKey => {
-    const recs = records[dateKey];
-    if (!recs || recs.length === 0) return '';
+    const recs = records[dateKey] || [];
+    const diaps = diapers[dateKey] || [];
+    if (recs.length === 0 && diaps.length === 0) return '';
+
     const [yr, mo, dy] = dateKey.split('-');
     const isToday = dateKey === today;
+
+    // Stats by baby
+    const bigRecs = recs.filter(r => r.baby === 'big');
+    const smallRecs = recs.filter(r => r.baby === 'small');
+    const bigCount = bigRecs.length;
+    const bigTotal = bigRecs.reduce((s,r) => s+r.amount, 0);
+    const smallCount = smallRecs.length;
+    const smallTotal = smallRecs.reduce((s,r) => s+r.amount, 0);
     const totalAmt = recs.reduce((s,r) => s+r.amount, 0);
-    const recHTML = recs.map(r => {
-      const who = r.baby === 'big' ? '大宝' : '小宝';
-      const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
-      const noteStr = r.note ? ` · ${r.note}` : '';
-      return `<div class="log-entry">
-        <div class="log-dot ${dotClass}"></div>
-        <div class="log-time">${fmtTime(r.time)}</div>
-        <div class="log-who">${who}</div>
-        <div class="log-amount">${r.amount}ml${noteStr}</div>
-      </div>`;
+
+    // Merge and sort all entries
+    const allEntries = [];
+    recs.forEach(r => allEntries.push({ type: 'feed', data: r }));
+    diaps.forEach(d => allEntries.push({ type: 'diaper', data: d }));
+    allEntries.sort((a, b) => a.data.time - b.data.time);
+
+    const recHTML = allEntries.map(entry => {
+      if (entry.type === 'feed') {
+        const r = entry.data;
+        const who = r.baby === 'big' ? '大宝' : '小宝';
+        const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+        const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
+        const noteStr = r.note ? ` · ${r.note}` : '';
+        return `<div class="log-entry">
+          <div class="log-dot ${dotClass}"></div>
+          <div class="log-time">${fmtTime(r.time)}</div>
+          <div class="log-who">${who}</div>
+          <div class="log-amount">${r.amount}ml ${typeLabel}${noteStr}</div>
+        </div>`;
+      } else {
+        const d = entry.data;
+        const who = d.baby === 'big' ? '大宝' : '小宝';
+        const dotClass = d.type === 'pee' ? 'dot-pee' : 'dot-poo';
+        const typeLabel = d.type === 'pee' ? '小便' : '大便';
+        return `<div class="log-entry">
+          <div class="log-dot ${dotClass}"></div>
+          <div class="log-time">${fmtTime(d.time)}</div>
+          <div class="log-who">${who}</div>
+          <div class="log-diaper-type">🧷 ${typeLabel}</div>
+        </div>`;
+      }
     }).join('');
+
     return `<div class="day-group">
-      <div class="day-label">${isToday ? '今天 · ' : ''}${yr}年${parseInt(mo)}月${parseInt(dy)}日 · 共${recs.length}次 ${totalAmt}ml</div>
+      <div class="day-label">${isToday ? '今天 · ' : ''}${yr}年${parseInt(mo)}月${parseInt(dy)}日</div>
+      <div class="history-baby-stats">
+        <div class="history-baby-stat"><strong>大宝：</strong>${bigCount}次 ${bigTotal}ml</div>
+        <div class="history-baby-stat"><strong>小宝：</strong>${smallCount}次 ${smallTotal}ml</div>
+        <div class="history-baby-stat">合计：${recs.length}次 ${totalAmt}ml</div>
+      </div>
       <div class="log-card">${recHTML}</div>
     </div>`;
   }).join('');
