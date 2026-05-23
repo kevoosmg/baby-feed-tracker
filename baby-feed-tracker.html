@@ -683,7 +683,12 @@
   /* Scrollbar */
   .log-list::-webkit-scrollbar { width: 3px; }
   .log-list::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
-</style>
+  .feed-type-tab.active-direct {
+    background: #FFF8E1;
+    color: #F57F17;
+    border-bottom: 3px solid #F9A825;
+  }
+  </style>
 </head>
 <body>
 
@@ -807,7 +812,7 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="feedModalTitle">记录喂奶</div>
-    <div class="form-group">
+    <div class="form-group" id="amountGroup">
       <label class="form-label">喂奶量（ml）</label>
       <div class="amount-presets">
         <button class="preset-btn" onclick="selectPreset(this, 60)">60</button>
@@ -826,6 +831,7 @@
       <div class="feed-type-tabs">
         <button class="feed-type-tab active" id="tab-formula" onclick="selectFeedType(this, 'formula')">🍼 奶粉</button>
         <button class="feed-type-tab" id="tab-breast" onclick="selectFeedType(this, 'breast')">🤱 母乳</button>
+        <button class="feed-type-tab" id="tab-direct" onclick="selectFeedType(this, 'direct')">👶 亲喂</button>
       </div>
     </div>
     <div class="form-group">
@@ -1321,6 +1327,11 @@ function openFeedModal(baby) {
   // Reset feed type tabs
   document.getElementById('tab-formula').classList.add('active');
   document.getElementById('tab-breast').classList.remove('active');
+  const tabDirect = document.getElementById('tab-direct');
+  if (tabDirect) tabDirect.classList.remove('active');
+  // Show amount group
+  const amountGroup = document.getElementById('amountGroup');
+  if (amountGroup) amountGroup.style.display = '';
   document.getElementById('feedModal').classList.add('show');
 }
 function closeFeedModal() {
@@ -1334,9 +1345,13 @@ function selectPreset(btn, val) {
 }
 function selectFeedType(btn, type) {
   currentFeedType = type;
-  document.getElementById('tab-formula').classList.remove('active');
-  document.getElementById('tab-breast').classList.remove('active');
+  ['tab-formula','tab-breast','tab-direct'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
   btn.classList.add('active');
+  const amountGroup = document.getElementById('amountGroup');
+  if (amountGroup) amountGroup.style.display = type === 'direct' ? 'none' : '';
 }
 async function confirmFeed() {
   const amountRaw = document.getElementById('feedAmount').value;
@@ -1344,22 +1359,23 @@ async function confirmFeed() {
   const note = document.getElementById('feedNote').value.trim();
   const amount = parseInt(amountRaw);
 
-  if (!amountRaw || isNaN(amount) || amount <= 0) {
-    showToast('请输入喂奶量'); return;
+  if (currentFeedType !== 'direct') {
+    if (!amountRaw || isNaN(amount) || amount <= 0) {
+      showToast('请输入喂奶量'); return;
+    }
   }
   if (!timeRaw) {
     showToast('请选择时间'); return;
   }
 
   const ts = new Date(timeRaw).getTime();
-  const today = todayKey();
   const recordDate = new Date(ts);
   const recordDateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth()+1).padStart(2,'0')}-${String(recordDate.getDate()).padStart(2,'0')}`;
 
   const record = {
     baby: currentFeedBaby,
     time: ts,
-    amount: amount,
+    amount: currentFeedType === 'direct' ? 0 : amount,
     feed_type: currentFeedType,
     note: note
   };
@@ -1372,16 +1388,12 @@ async function confirmFeed() {
   renderTodayLog();
 
   const name = currentFeedBaby === 'big' ? '大宝' : '小宝';
-  const typeLabel = currentFeedType === 'formula' ? '奶粉' : '母乳';
-  showToast(`${name} ${typeLabel} ${amount}ml ✓`);
+  const typeLabel = currentFeedType === 'formula' ? '奶粉' : (currentFeedType === 'breast' ? '母乳' : '亲喂');
+  const amountText = currentFeedType === 'direct' ? '' : `${amount}ml `;
+  showToast(`${name} ${typeLabel} ${amountText}✓`);
 
-  // Celebration!
   showCelebration();
 
-  // Celebration!
-  showCelebration();
-
-  // Request notification permission
   if (Notification.permission === 'default') {
     Notification.requestPermission();
   }
@@ -1466,22 +1478,24 @@ function renderTodayLog() {
   }
 
   container.innerHTML = allEntries.map(entry => {
-    if (entry.type === 'feed') {
-      const r = entry.data;
-      const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
-      const who = r.baby === 'big' ? '大宝' : '小宝';
-      const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
-      const noteStr = r.note ? ` (${r.note})` : '';
-      const typeStr = typeLabel ? ` ${typeLabel}` : '';
-      return `
-      <div class="log-entry">
-        <div class="log-dot ${dotClass}"></div>
-        <div class="log-time">${fmtTime(r.time)}</div>
-        <div class="log-who">${who}</div>
-        <div class="log-amount">${r.amount}ml${typeStr}${noteStr}</div>
-        <button class="log-del" onclick="delFeedRecord('${today}',${entry.idx})" title="删除">×</button>
-      </div>`;
-    } else {
+      if (entry.type === 'feed') {
+        const r = entry.data;
+        const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+        const who = r.baby === 'big' ? '大宝' : '小宝';
+        const isDirect = r.feed_type === 'direct';
+        const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
+        const noteStr = r.note ? ` (${r.note})` : '';
+        const typeStr = typeLabel ? ` ${typeLabel}` : '';
+        const amountDisplay = isDirect ? '亲喂' : `${r.amount}ml${typeStr}`;
+        return `
+        <div class="log-entry">
+          <div class="log-dot ${dotClass}"></div>
+          <div class="log-time">${fmtTime(r.time)}</div>
+          <div class="log-who">${who}</div>
+          <div class="log-amount">${amountDisplay}${noteStr}</div>
+          <button class="log-del" onclick="delFeedRecord('${today}',${entry.idx})" title="删除">×</button>
+        </div>`;
+      } else {
       const d = entry.data;
       const dotClass = d.type === 'pee' ? 'dot-pee' : 'dot-poo';
       const who = d.baby === 'big' ? '大宝' : '小宝';
@@ -1574,9 +1588,12 @@ function copyToClipboard() {
 
     records.forEach((r, i) => {
       const who = r.baby === 'big' ? '大宝' : '小宝';
+      const isDirect = r.feed_type === 'direct';
       const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
       const noteStr = r.note ? ` (${r.note})` : '';
-      lines.push(`${String(i+1).padStart(2,'0')}. ${fmtTime(r.time)} ${who} ${r.amount}ml${typeLabel}${noteStr}`);
+      const typeStr = typeLabel ? ` ${typeLabel}` : '';
+      const amountStr = isDirect ? '亲喂' : `${r.amount}ml${typeStr}`;
+      lines.push(`${String(i+1).padStart(2,'0')}. ${fmtTime(r.time)} ${who} ${amountStr}${noteStr}`);
       if (r.baby === 'big') { bigCount++; bigTotal += r.amount; }
       else { smallCount++; smallTotal += r.amount; }
     });
@@ -1674,13 +1691,15 @@ function renderHistory() {
         const r = entry.data;
         const who = r.baby === 'big' ? '大宝' : '小宝';
         const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+        const isDirect = r.feed_type === 'direct';
         const typeLabel = r.feed_type === 'breast' ? '[母乳]' : '';
         const noteStr = r.note ? ` · ${r.note}` : '';
+        const display = isDirect ? `亲喂${noteStr}` : `${r.amount}ml ${typeLabel}${noteStr}`;
         return `<div class="log-entry">
           <div class="log-dot ${dotClass}"></div>
           <div class="log-time">${fmtTime(r.time)}</div>
           <div class="log-who">${who}</div>
-          <div class="log-amount">${r.amount}ml ${typeLabel}${noteStr}</div>
+          <div class="log-amount">${display}</div>
         </div>`;
       } else {
         const d = entry.data;
