@@ -1381,10 +1381,14 @@ async function confirmFeed() {
   };
 
   await saveRecord(recordDateKey, record);
-  setLastFeed(currentFeedBaby, ts);
+  if (currentFeedType !== 'direct') {
+    setLastFeed(currentFeedBaby, ts);
+  }
 
   closeFeedModal();
-  updateTimer(currentFeedBaby);
+  if (currentFeedType !== 'direct') {
+    updateTimer(currentFeedBaby);
+  }
   renderTodayLog();
 
   const name = currentFeedBaby === 'big' ? '大宝' : '小宝';
