@@ -894,8 +894,10 @@ let cachedVitamin = {};
 function sb() { return window.__sb; }
 
 function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  // 强制用中国时区，不受浏览器时区影响
+  const now = new Date();
+  const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return f.format(now);
 }
 
 function loadFromCache() {
@@ -1240,7 +1242,7 @@ let currentVitaminType = null;
 function handleVitamin(type) {
   const status = getVitaminStatus(type);
   if (status === 'done') { showToast('今天已经服用了 ✓'); return; }
-  if (status === 'tomorrow') { showToast('明天再服用，今天跳过'); return; }
+  // tomorrow 状态不再拦截，允许手动记录（用户可自主决定）
 
   currentVitaminType = type;
   const titleEl = document.getElementById('vitaminModalTitle');
