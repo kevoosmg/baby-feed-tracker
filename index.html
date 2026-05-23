@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="喂奶记录">
+<title>宝宝喂奶记录</title>
+<style>
+  :root {
+    --pink: #FF6B9D;
+    --pink-light: #FFE0EC;
+    --blue: #4FACFE;
+    --blue-light: #E0F2FE;
+    --green: #43E97B;
+    --green-light: #D4F7E3;
+    --orange: #FA8231;
+    --orange-light: #FFF0E0;
+    --warn: #FF4757;
+    --warn-light: #FFE8EA;
+    --text: #2D3436;
+    --text-light: #636E72;
+    --bg: #F8F9FA;
+    --card: #FFFFFF;
+    --radius: 18px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%);
+    color: white;
+    padding: 20px 20px 24px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(255,107,157,0.3);
+  }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .header .date { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+  .section { padding: 16px 16px 0; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* Baby Cards */
+  .baby-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .baby-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .baby-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .baby-card.big::before { background: linear-gradient(90deg, #FF6B9D, #FF8E53); }
+  .baby-card.small::before { background: linear-gradient(90deg, #4FACFE, #00F2FE); }
+
+  .baby-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .baby-card.big .baby-name { color: #FF6B9D; }
+  .baby-card.small .baby-name { color: #4FACFE; }
+
+  .last-feed {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+  }
+
+  .timer-ring {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 12px;
+    position: relative;
+  }
+  .timer-ring svg {
+    transform: rotate(-90deg);
+    width: 80px;
+    height: 80px;
+  }
+  .timer-ring .bg-circle {
+    fill: none;
+    stroke: #F0F0F0;
+    stroke-width: 6;
+  }
+  .timer-ring .progress-circle {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+  }
+  .baby-card.big .progress-circle { stroke: #FF6B9D; }
+  .baby-card.small .progress-circle { stroke: #4FACFE; }
+  .timer-ring .timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .timer-ring .timer-hm {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    display: block;
+  }
+  .timer-ring .timer-label {
+    font-size: 9px;
+    color: var(--text-light);
+    display: block;
+  }
+
+  .status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .status-ok { background: var(--green-light); color: #27AE60; }
+  .status-soon { background: var(--orange-light); color: var(--orange); }
+  .status-due { background: var(--warn-light); color: var(--warn); }
+  .status-none { background: #F0F0F0; color: var(--text-light); }
+
+  .btn-feed {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn-feed:active { transform: scale(0.96); opacity: 0.85; }
+  .baby-card.big .btn-feed { background: linear-gradient(135deg, #FF6B9D, #FF8E53); color: white; }
+  .baby-card.small .btn-feed { background: linear-gradient(135deg, #4FACFE, #00F2FE); color: white; }
+
+  /* Vitamin Row */
+  .vitamin-row {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .vitamin-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .vitamin-item:active { background: #F8F9FA; }
+  .vitamin-item + .vitamin-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 16px; right: 16px;
+    height: 1px;
+    background: #F0F0F0;
+  }
+  .vitamin-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .vitamin-ad .vitamin-icon { background: #FFF3E0; }
+  .vitamin-d3 .vitamin-icon { background: #E8F5E9; }
+  .vitamin-info { flex: 1; }
+  .vitamin-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .vitamin-desc { font-size: 11px; color: var(--text-light); }
+  .vitamin-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .v-done { background: var(--green-light); color: #27AE60; }
+  .v-due { background: var(--warn-light); color: var(--warn); }
+  .v-skip { background: #F0F0F0; color: var(--text-light); }
+  .v-tomorrow { background: var(--blue-light); color: var(--blue); }
+
+  /* Today's Log */
+  .log-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #F5F5F5;
+  }
+  .log-title { font-size: 15px; font-weight: 700; }
+  .log-stats { display: flex; gap: 12px; }
+  .log-stat { text-align: center; }
+  .log-stat-num { font-size: 18px; font-weight: 700; color: var(--pink); display: block; }
+  .log-stat-label { font-size: 10px; color: var(--text-light); }
+
+  .log-list { padding: 8px 0; max-height: 260px; overflow-y: auto; }
+  .log-entry {
+    display: flex;
+    align-items: center;
+    padding: 9px 16px;
+    gap: 10px;
+    transition: background 0.1s;
+  }
+  .log-entry:hover { background: #FAFAFA; }
+  .log-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-big { background: #FF6B9D; }
+  .dot-small { background: #4FACFE; }
+  .log-time { font-size: 12px; color: var(--text-light); width: 42px; flex-shrink: 0; }
+  .log-who { font-size: 13px; font-weight: 600; width: 28px; flex-shrink: 0; }
+  .log-amount { font-size: 13px; color: var(--text); flex: 1; }
+  .log-note { font-size: 11px; color: var(--text-light); flex: 1; font-style: italic; }
+  .log-del {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: #FFF0F0;
+    color: #FF4757;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .log-del:active { background: #FFD0D5; }
+
+  .log-empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-light);
+    font-size: 13px;
+  }
+
+  /* Copy Button */
+  .btn-copy {
+    width: calc(100% - 32px);
+    margin: 0 16px 16px;
+    border: none;
+    border-radius: 12px;
+    padding: 13px 0;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, #667EEA, #764BA2);
+    color: white;
+    letter-spacing: 0.5px;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+  .btn-copy:active { transform: scale(0.98); opacity: 0.85; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(30px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal-overlay.show .modal { transform: translateY(0); }
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: #DDD;
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-input {
+    width: 100%;
+    border: 2px solid #EEE;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #FAFAFA;
+    color: var(--text);
+    font-family: inherit;
+    -webkit-appearance: none;
+  }
+  .form-input:focus { border-color: var(--pink); background: white; }
+
+  .amount-presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .preset-btn {
+    border: 2px solid #EEE;
+    border-radius: 10px;
+    padding: 9px 0;
+    font-size: 13px;
+    font-weight: 600;
+    background: white;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .preset-btn.active, .preset-btn:active {
+    border-color: var(--pink);
+    color: var(--pink);
+    background: var(--pink-light);
+  }
+
+  .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+  .btn-cancel {
+    border: 2px solid #EEE;
+    border-radius: 12px;
+    padding: 13px 0;
+    font-size: 15px;
+    font-weight: 600;
+    background: white;
+    color: var(--text-light);
+    cursor: pointer;
+  }
+  .btn-confirm {
+    border: none;
+    border-radius: 12px;
+    padding: 13px 0;
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF6B9D, #FF8E53);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .btn-confirm:active { transform: scale(0.97); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(45,52,54,0.92);
+    color: white;
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Tab Bar */
+  .tab-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid #F0F0F0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 80px;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 150;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  }
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 8px;
+  }
+  .tab-item .tab-icon { font-size: 24px; line-height: 1; }
+  .tab-item .tab-label { font-size: 11px; font-weight: 600; color: var(--text-light); }
+  .tab-item.active .tab-label { color: var(--pink); }
+
+  /* Page */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* History Page */
+  .day-group { margin-bottom: 16px; }
+  .day-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-light);
+    padding: 0 4px 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Vitamin confirm modal adjustments */
+  .vitamin-confirm-info {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  .vitamin-confirm-info strong { color: var(--text); }
+
+  /* Ring warning pulse */
+  @keyframes pulse-ring {
+    0% { transform: rotate(-90deg) scale(1); }
+    50% { transform: rotate(-90deg) scale(1.03); }
+    100% { transform: rotate(-90deg) scale(1); }
+  }
+  .pulse svg { animation: pulse-ring 1.2s ease-in-out infinite; }
+
+  /* Scrollbar */
+  .log-list::-webkit-scrollbar { width: 3px; }
+  .log-list::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍼 宝宝喂奶记录</h1>
+  <div class="date" id="headerDate"></div>
+</div>
+
+<!-- Tab Pages -->
+<div id="page-home" class="page active">
+
+  <div class="section" style="margin-top:16px;">
+    <div class="section-title">喂奶计时</div>
+    <div class="baby-grid">
+      <!-- 大宝 -->
+      <div class="baby-card big" id="card-big">
+        <div class="baby-name">👶 大宝</div>
+        <div class="last-feed" id="lastFeed-big">尚未记录</div>
+        <div class="timer-ring" id="ring-big">
+          <svg viewBox="0 0 80 80">
+            <circle class="bg-circle" cx="40" cy="40" r="34"/>
+            <circle class="progress-circle" id="progress-big" cx="40" cy="40" r="34"
+              stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+          </svg>
+          <div class="timer-text">
+            <span class="timer-hm" id="timerHM-big">--:--</span>
+            <span class="timer-label" id="timerLabel-big">距上次</span>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:10px;">
+          <span class="status-badge status-none" id="status-big">未开始</span>
+        </div>
+        <button class="btn-feed" onclick="openFeedModal('big')">记录喂奶</button>
+      </div>
+
+      <!-- 小宝 -->
+      <div class="baby-card small" id="card-small">
+        <div class="baby-name">🐣 小宝</div>
+        <div class="last-feed" id="lastFeed-small">尚未记录</div>
+        <div class="timer-ring" id="ring-small">
+          <svg viewBox="0 0 80 80">
+            <circle class="bg-circle" cx="40" cy="40" r="34"/>
+            <circle class="progress-circle" id="progress-small" cx="40" cy="40" r="34"
+              stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+          </svg>
+          <div class="timer-text">
+            <span class="timer-hm" id="timerHM-small">--:--</span>
+            <span class="timer-label" id="timerLabel-small">距上次</span>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:10px;">
+          <span class="status-badge status-none" id="status-small">未开始</span>
+        </div>
+        <button class="btn-feed" onclick="openFeedModal('small')">记录喂奶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vitamin Tracker -->
+  <div class="section" style="margin-top:20px;">
+    <div class="section-title">每日营养</div>
+    <div class="vitamin-row">
+      <div class="vitamin-item vitamin-ad" onclick="handleVitamin('ad')">
+        <div class="vitamin-icon">🟠</div>
+        <div class="vitamin-info">
+          <div class="vitamin-name">维生素 AD</div>
+          <div class="vitamin-desc">早餐后 · 每天一粒</div>
+        </div>
+        <span class="vitamin-status" id="vStatus-ad">加载中</span>
+      </div>
+      <div class="vitamin-item vitamin-d3" onclick="handleVitamin('d3')">
+        <div class="vitamin-icon">🟡</div>
+        <div class="vitamin-info">
+          <div class="vitamin-name">维生素 D3</div>
+          <div class="vitamin-desc">隔天一粒</div>
+        </div>
+        <span class="vitamin-status" id="vStatus-d3">加载中</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today Log -->
+  <div class="section" style="margin-top:20px;">
+    <div class="section-title">今日记录</div>
+    <div class="log-card">
+      <div class="log-header">
+        <div class="log-title">📋 今日喂奶</div>
+        <div class="log-stats">
+          <div class="log-stat">
+            <span class="log-stat-num" id="stat-count">0</span>
+            <span class="log-stat-label">次</span>
+          </div>
+          <div class="log-stat">
+            <span class="log-stat-num" id="stat-amount">0</span>
+            <span class="log-stat-label">ml</span>
+          </div>
+        </div>
+      </div>
+      <div class="log-list" id="todayLog"></div>
+      <button class="btn-copy" onclick="copyToClipboard()">📋 复制今日记录 发群</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- History Page -->
+<div id="page-history" class="page">
+  <div class="section" style="margin-top:16px;">
+    <div class="section-title">历史记录</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <div class="tab-item active" id="tab-home" onclick="switchTab('home')">
+    <div class="tab-icon">🍼</div>
+    <div class="tab-label">今日</div>
+  </div>
+  <div class="tab-item" id="tab-history" onclick="switchTab('history')">
+    <div class="tab-icon">📅</div>
+    <div class="tab-label">历史</div>
+  </div>
+</div>
+
+<!-- Feed Modal -->
+<div class="modal-overlay" id="feedModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="feedModalTitle">记录喂奶</div>
+    <div class="form-group">
+      <label class="form-label">喂奶量（ml）</label>
+      <div class="amount-presets">
+        <button class="preset-btn" onclick="selectPreset(this, 60)">60</button>
+        <button class="preset-btn" onclick="selectPreset(this, 80)">80</button>
+        <button class="preset-btn" onclick="selectPreset(this, 100)">100</button>
+        <button class="preset-btn" onclick="selectPreset(this, 120)">120</button>
+        <button class="preset-btn" onclick="selectPreset(this, 140)">140</button>
+        <button class="preset-btn" onclick="selectPreset(this, 160)">160</button>
+        <button class="preset-btn" onclick="selectPreset(this, 180)">180</button>
+        <button class="preset-btn" onclick="selectPreset(this, 200)">200</button>
+      </div>
+      <input type="number" class="form-input" id="feedAmount" placeholder="或手动输入" min="0" max="400" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label class="form-label">时间（可调整）</label>
+      <input type="datetime-local" class="form-input" id="feedTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">备注（可选）</label>
+      <input type="text" class="form-input" id="feedNote" placeholder="如：吐奶、哭闹等">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeFeedModal()">取消</button>
+      <button class="btn-confirm" onclick="confirmFeed()">确认记录</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vitamin Modal -->
+<div class="modal-overlay" id="vitaminModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="vitaminModalTitle">记录维生素</div>
+    <div class="vitamin-confirm-info" id="vitaminInfo"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeVitaminModal()">取消</button>
+      <button class="btn-confirm" id="vitaminConfirmBtn" onclick="confirmVitamin()">已服用 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== DATA LAYER ==========
+const INTERVAL_MS = 2.5 * 60 * 60 * 1000; // 2.5 hours
+
+function getStore() {
+  try {
+    return JSON.parse(localStorage.getItem('babyFeed') || '{}');
+  } catch(e) { return {}; }
+}
+function saveStore(data) {
+  localStorage.setItem('babyFeed', JSON.stringify(data));
+}
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getRecords(dateKey) {
+  const store = getStore();
+  return store.records?.[dateKey] || [];
+}
+function saveRecord(dateKey, record) {
+  const store = getStore();
+  if (!store.records) store.records = {};
+  if (!store.records[dateKey]) store.records[dateKey] = [];
+  store.records[dateKey].push(record);
+  store.records[dateKey].sort((a,b) => a.time - b.time);
+  saveStore(store);
+}
+function deleteRecord(dateKey, idx) {
+  const store = getStore();
+  if (store.records?.[dateKey]) {
+    store.records[dateKey].splice(idx, 1);
+    saveStore(store);
+  }
+}
+
+function getLastFeed(baby) {
+  const store = getStore();
+  return store.lastFeed?.[baby] || null;
+}
+function setLastFeed(baby, ts) {
+  const store = getStore();
+  if (!store.lastFeed) store.lastFeed = {};
+  store.lastFeed[baby] = ts;
+  saveStore(store);
+}
+
+function getVitamin() {
+  const store = getStore();
+  return store.vitamin || {};
+}
+function setVitamin(type, dateKey) {
+  const store = getStore();
+  if (!store.vitamin) store.vitamin = {};
+  store.vitamin[type] = dateKey;
+  saveStore(store);
+}
+
+// ========== UI HELPERS ==========
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function fmtDateTime(ts) {
+  const d = new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()} ${fmtTime(ts)}`;
+}
+function fmtDuration(ms) {
+  if (ms < 0) ms = 0;
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h > 0) return `${h}h${String(m).padStart(2,'0')}m`;
+  return `${m}m`;
+}
+function toLocalDatetimeValue(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function showToast(msg, duration=2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ========== TIMER ==========
+function updateTimer(baby) {
+  const last = getLastFeed(baby);
+  const progEl = document.getElementById(`progress-${baby}`);
+  const hmEl = document.getElementById(`timerHM-${baby}`);
+  const labelEl = document.getElementById(`timerLabel-${baby}`);
+  const statusEl = document.getElementById(`status-${baby}`);
+  const lastFeedEl = document.getElementById(`lastFeed-${baby}`);
+  const ringEl = document.getElementById(`ring-${baby}`);
+  const circumference = 213.6;
+
+  if (!last) {
+    progEl.style.strokeDashoffset = circumference;
+    hmEl.textContent = '--:--';
+    labelEl.textContent = '距上次';
+    statusEl.className = 'status-badge status-none';
+    statusEl.textContent = '未开始';
+    lastFeedEl.textContent = '尚未记录';
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - last;
+  const remaining = INTERVAL_MS - elapsed;
+  const progress = Math.min(elapsed / INTERVAL_MS, 1);
+
+  // Ring progress (fills as time passes)
+  const offset = circumference * (1 - progress);
+  progEl.style.strokeDashoffset = offset;
+
+  lastFeedEl.textContent = `上次: ${fmtTime(last)}`;
+
+  if (remaining > 0) {
+    const remH = Math.floor(remaining / 3600000);
+    const remM = Math.floor((remaining % 3600000) / 60000);
+    const remS = Math.floor((remaining % 60000) / 1000);
+    if (remH > 0) {
+      hmEl.textContent = `${remH}:${String(remM).padStart(2,'0')}`;
+      labelEl.textContent = '剩余';
+    } else {
+      hmEl.textContent = `${remM}:${String(remS).padStart(2,'0')}`;
+      labelEl.textContent = '剩余';
+    }
+
+    if (remaining > 30 * 60000) {
+      statusEl.className = 'status-badge status-ok';
+      statusEl.textContent = '😴 睡得香';
+      ringEl.classList.remove('pulse');
+    } else {
+      statusEl.className = 'status-badge status-soon';
+      statusEl.textContent = '🍼 快了';
+      ringEl.classList.remove('pulse');
+    }
+  } else {
+    const overdue = Math.abs(remaining);
+    const oH = Math.floor(overdue / 3600000);
+    const oM = Math.floor((overdue % 3600000) / 60000);
+    if (oH > 0) {
+      hmEl.textContent = `+${oH}h${String(oM).padStart(2,'0')}`;
+    } else {
+      hmEl.textContent = `+${oM}m`;
+    }
+    labelEl.textContent = '超时';
+    statusEl.className = 'status-badge status-due';
+    statusEl.textContent = '🔴 该喂了！';
+    ringEl.classList.add('pulse');
+    progEl.style.stroke = '#FF4757';
+  }
+}
+
+// ========== VITAMIN ==========
+function getVitaminStatus(type) {
+  const v = getVitamin();
+  const today = todayKey();
+
+  if (type === 'ad') {
+    if (v.ad === today) return 'done';
+    return 'due';
+  }
+
+  if (type === 'd3') {
+    if (v.d3 === today) return 'done';
+    // Check if it's an "off day" (every other day)
+    if (v.d3) {
+      const lastDate = new Date(v.d3);
+      const todayDate = new Date(today);
+      const diffDays = Math.round((todayDate - lastDate) / 86400000);
+      if (diffDays === 1) return 'tomorrow'; // yesterday was the day, today skip
+      if (diffDays >= 2) return 'due';
+      return 'done';
+    }
+    return 'due';
+  }
+}
+
+function updateVitaminUI() {
+  const adStatus = getVitaminStatus('ad');
+  const d3Status = getVitaminStatus('d3');
+
+  const adEl = document.getElementById('vStatus-ad');
+  const d3El = document.getElementById('vStatus-d3');
+
+  function applyStatus(el, status) {
+    el.className = 'vitamin-status';
+    if (status === 'done') { el.className += ' v-done'; el.textContent = '✓ 已服用'; }
+    else if (status === 'due') { el.className += ' v-due'; el.textContent = '⚡ 待服用'; }
+    else if (status === 'tomorrow') { el.className += ' v-tomorrow'; el.textContent = '明天服用'; }
+    else { el.className += ' v-skip'; el.textContent = '今日跳过'; }
+  }
+
+  applyStatus(adEl, adStatus);
+  applyStatus(d3El, d3Status);
+}
+
+let currentVitaminType = null;
+function handleVitamin(type) {
+  const status = getVitaminStatus(type);
+  if (status === 'done') { showToast('今天已经服用了 ✓'); return; }
+  if (status === 'tomorrow') { showToast('明天再服用，今天跳过'); return; }
+
+  currentVitaminType = type;
+  const titleEl = document.getElementById('vitaminModalTitle');
+  const infoEl = document.getElementById('vitaminInfo');
+
+  if (type === 'ad') {
+    titleEl.textContent = '记录维生素 AD';
+    infoEl.innerHTML = `<strong>维生素 AD</strong>（伊可新等）<br>每天早餐后第一次喂奶后服用一粒`;
+  } else {
+    const v = getVitamin();
+    const lastD3 = v.d3 ? `上次服用：${v.d3}` : '首次记录';
+    titleEl.textContent = '记录维生素 D3';
+    infoEl.innerHTML = `<strong>维生素 D3</strong><br>隔天一粒 · ${lastD3}`;
+  }
+
+  document.getElementById('vitaminModal').classList.add('show');
+}
+function closeVitaminModal() {
+  document.getElementById('vitaminModal').classList.remove('show');
+  currentVitaminType = null;
+}
+function confirmVitamin() {
+  if (!currentVitaminType) return;
+  setVitamin(currentVitaminType, todayKey());
+  updateVitaminUI();
+  closeVitaminModal();
+  const name = currentVitaminType === 'ad' ? '维生素AD' : '维生素D3';
+  showToast(`${name} 已记录 ✓`);
+}
+
+// ========== FEED MODAL ==========
+let currentFeedBaby = null;
+function openFeedModal(baby) {
+  currentFeedBaby = baby;
+  const name = baby === 'big' ? '大宝' : '小宝';
+  document.getElementById('feedModalTitle').textContent = `🍼 记录${name}喂奶`;
+  document.getElementById('feedAmount').value = '';
+  document.getElementById('feedNote').value = '';
+  document.getElementById('feedTime').value = toLocalDatetimeValue(Date.now());
+  // Reset presets
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('feedModal').classList.add('show');
+}
+function closeFeedModal() {
+  document.getElementById('feedModal').classList.remove('show');
+  currentFeedBaby = null;
+}
+function selectPreset(btn, val) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('feedAmount').value = val;
+}
+function confirmFeed() {
+  const amountRaw = document.getElementById('feedAmount').value;
+  const timeRaw = document.getElementById('feedTime').value;
+  const note = document.getElementById('feedNote').value.trim();
+  const amount = parseInt(amountRaw);
+
+  if (!amountRaw || isNaN(amount) || amount <= 0) {
+    showToast('请输入喂奶量'); return;
+  }
+  if (!timeRaw) {
+    showToast('请选择时间'); return;
+  }
+
+  const ts = new Date(timeRaw).getTime();
+  const today = todayKey();
+  const recordDate = new Date(ts);
+  const recordDateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth()+1).padStart(2,'0')}-${String(recordDate.getDate()).padStart(2,'0')}`;
+
+  const record = {
+    baby: currentFeedBaby,
+    time: ts,
+    amount: amount,
+    note: note
+  };
+
+  saveRecord(recordDateKey, record);
+  setLastFeed(currentFeedBaby, ts);
+
+  closeFeedModal();
+  updateTimer(currentFeedBaby);
+  renderTodayLog();
+
+  const name = currentFeedBaby === 'big' ? '大宝' : '小宝';
+  showToast(`${name} 喝了 ${amount}ml ✓`);
+
+  // Request notification permission
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ========== LOG RENDER ==========
+function renderTodayLog() {
+  const today = todayKey();
+  const records = getRecords(today);
+  const container = document.getElementById('todayLog');
+
+  let totalCount = records.length;
+  let totalAmount = records.reduce((s, r) => s + r.amount, 0);
+
+  document.getElementById('stat-count').textContent = totalCount;
+  document.getElementById('stat-amount').textContent = totalAmount;
+
+  if (records.length === 0) {
+    container.innerHTML = '<div class="log-empty">今天还没有记录<br>喂完第一顿点击"记录喂奶"📝</div>';
+    return;
+  }
+
+  container.innerHTML = records.map((r, i) => {
+    const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+    const who = r.baby === 'big' ? '大宝' : '小宝';
+    return `
+      <div class="log-entry">
+        <div class="log-dot ${dotClass}"></div>
+        <div class="log-time">${fmtTime(r.time)}</div>
+        <div class="log-who">${who}</div>
+        <div class="log-amount">${r.amount}ml</div>
+        <div class="log-note">${r.note || ''}</div>
+        <button class="log-del" onclick="delRecord('${today}',${i})" title="删除">×</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function delRecord(dateKey, idx) {
+  if (!confirm('确认删除这条记录？')) return;
+  deleteRecord(dateKey, idx);
+
+  // Recalculate last feed for each baby
+  const store = getStore();
+  ['big', 'small'].forEach(baby => {
+    const allRecords = Object.values(store.records || {}).flat()
+      .filter(r => r.baby === baby)
+      .sort((a, b) => b.time - a.time);
+    if (allRecords.length > 0) {
+      setLastFeed(baby, allRecords[0].time);
+    } else {
+      const s2 = getStore();
+      if (s2.lastFeed) { delete s2.lastFeed[baby]; saveStore(s2); }
+    }
+  });
+
+  renderTodayLog();
+  updateTimer('big');
+  updateTimer('small');
+  showToast('已删除');
+}
+
+// ========== COPY ==========
+function copyToClipboard() {
+  const today = todayKey();
+  const records = getRecords(today);
+  const vitamin = getVitamin();
+
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const weekStr = `周${weekdays[d.getDay()]}`;
+
+  let lines = [];
+  lines.push(`🍼 ${dateStr}（${weekStr}）喂奶记录`);
+  lines.push('═══════════════════');
+
+  if (records.length === 0) {
+    lines.push('今日暂无记录');
+  } else {
+    let bigCount = 0, bigTotal = 0;
+    let smallCount = 0, smallTotal = 0;
+
+    records.forEach((r, i) => {
+      const who = r.baby === 'big' ? '大宝' : '小宝';
+      const noteStr = r.note ? ` (${r.note})` : '';
+      lines.push(`${String(i+1).padStart(2,'0')}. ${fmtTime(r.time)} ${who} ${r.amount}ml${noteStr}`);
+      if (r.baby === 'big') { bigCount++; bigTotal += r.amount; }
+      else { smallCount++; smallTotal += r.amount; }
+    });
+
+    lines.push('───────────────────');
+    lines.push(`大宝：${bigCount}次 共${bigTotal}ml`);
+    lines.push(`小宝：${smallCount}次 共${smallTotal}ml`);
+    lines.push(`合计：${records.length}次 共${bigTotal+smallTotal}ml`);
+  }
+
+  lines.push('───────────────────');
+  const adDone = vitamin.ad === today;
+  const d3Status = getVitaminStatus('d3');
+  const d3Text = d3Status === 'done' ? '✓ 已服用' : (d3Status === 'tomorrow' ? '（今日跳过）' : '✗ 未服用');
+  lines.push(`维生素AD：${adDone ? '✓ 已服用' : '✗ 未服用'}`);
+  lines.push(`维生素D3：${d3Text}`);
+
+  const text = lines.join('\n');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已复制！粘贴到微信群即可 ✓', 2500);
+    }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('已复制！粘贴到微信群即可 ✓', 2500);
+  } catch(e) {
+    showToast('复制失败，请手动选择文本');
+  }
+  document.body.removeChild(ta);
+}
+
+// ========== HISTORY ==========
+function renderHistory() {
+  const store = getStore();
+  const records = store.records || {};
+  const today = todayKey();
+
+  const container = document.getElementById('historyList');
+  const allDates = Object.keys(records).sort((a,b) => b.localeCompare(a));
+
+  if (allDates.length === 0) {
+    container.innerHTML = '<div class="log-empty" style="padding:40px 20px;">暂无历史记录</div>';
+    return;
+  }
+
+  container.innerHTML = allDates.map(dateKey => {
+    const recs = records[dateKey];
+    if (!recs || recs.length === 0) return '';
+    const [yr, mo, dy] = dateKey.split('-');
+    const isToday = dateKey === today;
+    const totalAmt = recs.reduce((s,r) => s+r.amount, 0);
+    const recHTML = recs.map(r => {
+      const who = r.baby === 'big' ? '大宝' : '小宝';
+      const dotClass = r.baby === 'big' ? 'dot-big' : 'dot-small';
+      const noteStr = r.note ? ` · ${r.note}` : '';
+      return `<div class="log-entry">
+        <div class="log-dot ${dotClass}"></div>
+        <div class="log-time">${fmtTime(r.time)}</div>
+        <div class="log-who">${who}</div>
+        <div class="log-amount">${r.amount}ml${noteStr}</div>
+      </div>`;
+    }).join('');
+    return `<div class="day-group">
+      <div class="day-label">${isToday ? '今天 · ' : ''}${yr}年${parseInt(mo)}月${parseInt(dy)}日 · 共${recs.length}次 ${totalAmt}ml</div>
+      <div class="log-card">${recHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== TAB ==========
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'history') renderHistory();
+}
+
+// ========== NOTIFICATION ==========
+function scheduleNotification(baby, lastTs) {
+  if (Notification.permission !== 'granted') return;
+  const name = baby === 'big' ? '大宝' : '小宝';
+  const nextTime = lastTs + INTERVAL_MS;
+  const delay = nextTime - Date.now();
+  if (delay > 0 && delay < 4 * 60 * 60 * 1000) {
+    setTimeout(() => {
+      new Notification(`🍼 ${name}该喝奶啦！`, {
+        body: `距离上次喂奶已过2.5小时`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍼</text></svg>',
+        tag: `feed-${baby}`
+      });
+    }, delay);
+  }
+}
+
+// ========== INIT ==========
+function init() {
+  // Header date
+  const d = new Date();
+  const weekdays = ['日','一','二','三','四','五','六'];
+  document.getElementById('headerDate').textContent =
+    `${d.getMonth()+1}月${d.getDate()}日 · 周${weekdays[d.getDay()]}`;
+
+  // Init timers
+  updateTimer('big');
+  updateTimer('small');
+
+  // Init vitamin
+  updateVitaminUI();
+
+  // Init today log
+  renderTodayLog();
+
+  // Tick every second
+  setInterval(() => {
+    updateTimer('big');
+    updateTimer('small');
+  }, 1000);
+
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    // Will request on first feed record
+  }
+
+  // Schedule notifications for existing last feeds
+  ['big', 'small'].forEach(baby => {
+    const last = getLastFeed(baby);
+    if (last) scheduleNotification(baby, last);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
