@@ -1,4 +1,17 @@
-﻿node_modules/
-.workbuddy/
-*.zip
-deploy-mcp.js
+# Python scripts
+*.py
+
+# Temporary files
+*.txt
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
