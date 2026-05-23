@@ -937,7 +937,9 @@ async function loadAllData() {
           feed_type: r.feed_type || 'formula',
           note: r.note || ''
         });
-        lf[r.baby] = Math.max(lf[r.baby] || 0, new Date(r.time).getTime());
+        if (r.feed_type !== 'direct') {
+          lf[r.baby] = Math.max(lf[r.baby] || 0, new Date(r.time).getTime());
+        }
       });
     }
     cachedLastFeed = lf;
