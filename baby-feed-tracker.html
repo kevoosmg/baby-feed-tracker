@@ -1200,16 +1200,19 @@ function getVitaminStatus(type) {
 
   if (type === 'd3') {
     if (v.d3 === today) return 'done';
-    if (!v.d3) return 'today'; // never taken, show "今天服用"
-    // Timezone-safe day diff: parse YYYY-MM-DD as local midnight
-    const [ly, lm, ld] = v.d3.split('-').map(Number);
+    if (!v.d3) return 'due';
+    // 用日期字符串直接比较，彻底避免时区问题
+    // 计算昨天的日期字符串
     const [ty, tm, td] = today.split('-').map(Number);
-    const lastMidnight = new Date(ly, lm - 1, ld).getTime();
-    const todayMidnight = new Date(ty, tm - 1, td).getTime();
-    const diffDays = Math.round((todayMidnight - lastMidnight) / 86400000);
-    if (diffDays === 1) return 'tomorrow'; // last was yesterday, today = skip day
-    if (diffDays >= 2) return 'today';  // 2+ days since last, time to take
-    return 'done';
+    let y = ty, m = tm, d = td - 1;
+    if (d < 1) {
+      m = m - 1;
+      if (m < 1) { m = 12; y = y - 1; }
+      d = new Date(y, m, 0).getDate();
+    }
+    const yesterdayKey = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (v.d3 === yesterdayKey) return 'tomorrow';
+    return 'due';
   }
 }
 
