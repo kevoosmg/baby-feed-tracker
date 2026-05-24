@@ -675,6 +675,88 @@
   }
   .vitamin-confirm-info strong { color: var(--text); }
 
+  /* Record Celebration */
+  .record-celebration-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    background: rgba(0,0,0,0.78);
+    opacity: 0;
+    animation: recCeleFade 3.8s ease forwards;
+    will-change: opacity;
+  }
+  .record-celebration-trophy {
+    font-size: 64px;
+    animation: recTrophy 3.8s ease forwards;
+    z-index: 2;
+  }
+  .record-celebration-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #FFD700;
+    margin-top: 12px;
+    animation: recTitle 3.8s ease forwards;
+    z-index: 2;
+    text-shadow: 0 2px 16px rgba(255,215,0,0.5);
+  }
+  .record-celebration-amount {
+    font-size: 38px;
+    font-weight: 900;
+    color: #FFD700;
+    margin-top: 4px;
+    animation: recAmount 3.8s ease forwards;
+    z-index: 2;
+    text-shadow: 0 2px 20px rgba(255,215,0,0.6);
+  }
+  .rec-confetti {
+    position: absolute;
+    opacity: 0;
+    z-index: 1;
+    animation: recConfetti 3.8s ease forwards;
+  }
+  @keyframes recCeleFade {
+    0% { opacity: 0; }
+    8% { opacity: 1; }
+    78% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes recTrophy {
+    0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+    12% { transform: scale(1.4) rotate(8deg); opacity: 1; }
+    22% { transform: scale(0.9) rotate(-4deg); }
+    32% { transform: scale(1.05) rotate(2deg); }
+    40% { transform: scale(1) rotate(0deg); }
+    78% { opacity: 1; }
+    100% { opacity: 0; transform: scale(0.7); }
+  }
+  @keyframes recTitle {
+    0% { opacity: 0; transform: translateY(24px); }
+    18% { opacity: 0; }
+    35% { opacity: 1; transform: translateY(0); }
+    78% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes recAmount {
+    0% { opacity: 0; transform: scale(0.3); }
+    28% { opacity: 0; transform: scale(0.3); }
+    42% { opacity: 1; transform: scale(1.2); }
+    52% { transform: scale(0.95); }
+    58% { transform: scale(1); }
+    78% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.05); }
+  }
+  @keyframes recConfetti {
+    0% { opacity: 0; transform: translate(0,0) scale(0.1) rotate(0deg); }
+    10% { opacity: 1; }
+    72% { opacity: 0.7; }
+    100% { opacity: 0; transform: translate(var(--cx), var(--cy)) scale(1) rotate(var(--cr)); }
+  }
+
   /* Ring warning pulse */
   @keyframes pulse-ring {
     0% { transform: rotate(-90deg) scale(1); }
@@ -920,6 +1002,7 @@ let cachedRecords = {};
 let cachedDiaper = {};
 let cachedLastFeed = {};
 let cachedVitamin = {};
+let cachedMaxFeed = {}; // per-baby max feed amount
 
 function sb() { return window.__sb; }
 
@@ -937,7 +1020,8 @@ function loadFromCache() {
     cachedDiaper = c.diaper || {};
     cachedLastFeed = c.lastFeed || {};
     cachedVitamin = c.vitamin || {};
-  } catch(e) { cachedRecords = {}; cachedDiaper = {}; cachedLastFeed = {}; cachedVitamin = {}; }
+    cachedMaxFeed = c.maxFeed || {};
+  } catch(e) { cachedRecords = {}; cachedDiaper = {}; cachedLastFeed = {}; cachedVitamin = {}; cachedMaxFeed = {}; }
 }
 
 let _loadAllDataPromise = null;
@@ -972,6 +1056,16 @@ async function loadAllData() {
     }
     cachedLastFeed = lf;
 
+    // Compute max feed per baby (excluding direct feeds)
+    cachedMaxFeed = {};
+    if (feeds) {
+      feeds.forEach(r => {
+        if (r.feed_type !== 'direct' && r.amount > 0) {
+          cachedMaxFeed[r.baby] = Math.max(cachedMaxFeed[r.baby] || 0, r.amount);
+        }
+      });
+    }
+
     // Load diaper records
     const { data: diapers } = await client.from('diaper_records').select('*').order('time', { ascending: true });
     cachedDiaper = {};
@@ -1004,7 +1098,7 @@ async function loadAllData() {
     });
 
     localStorage.setItem('babyFeed_cache', JSON.stringify({
-      records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+      records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin, maxFeed: cachedMaxFeed
     }));
   } catch(e) {
     console.warn('Supabase load failed, using cache', e);
@@ -1138,7 +1232,7 @@ async function setVitamin(type, dateKey) {
   cachedVitamin[type] = dateKey;
   // Persist immediately
   localStorage.setItem('babyFeed_cache', JSON.stringify({
-    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin, maxFeed: cachedMaxFeed
   }));
 }
 
@@ -1161,7 +1255,7 @@ async function deleteVitamin(type) {
   // Force cache clean and persist immediately to prevent stale localStorage
   delete cachedVitamin[type];
   localStorage.setItem('babyFeed_cache', JSON.stringify({
-    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin, maxFeed: cachedMaxFeed
   }));
 }
 
@@ -1405,6 +1499,50 @@ function showCelebration() {
   setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 3200);
 }
 
+// ========== RECORD CELEBRATION ==========
+function showRecordCelebration(baby, amount) {
+  var overlay = document.createElement('div');
+  overlay.className = 'record-celebration-overlay';
+
+  var name = baby === 'big' ? '大宝' : '小宝';
+
+  var trophy = document.createElement('div');
+  trophy.className = 'record-celebration-trophy';
+  trophy.textContent = '\uD83C\uDFC6';
+  overlay.appendChild(trophy);
+
+  var title = document.createElement('div');
+  title.className = 'record-celebration-title';
+  title.textContent = '\u4E2A\u4EBA\u559D\u5976\u7EAA\u5F55\uFF01';
+  overlay.appendChild(title);
+
+  var amountEl = document.createElement('div');
+  amountEl.className = 'record-celebration-amount';
+  amountEl.textContent = name + ' ' + amount + 'ml';
+  overlay.appendChild(amountEl);
+
+  // Confetti: trophies, stars, medals, ribbons
+  var confetti = ['\uD83C\uDFC6','\u2B50','\u2728','\uD83C\uDF8A','\uD83C\uDF96\uFE0F','\uD83E\uDD47','\uD83D\uDCAB','\uD83C\uDF1F','\uD83D\uDCAA','\u2728','\uD83C\uDFC5','\uD83C\uDF8A'];
+  for (var i = 0; i < 35; i++) {
+    var particle = document.createElement('div');
+    particle.className = 'rec-confetti';
+    particle.textContent = confetti[i % confetti.length];
+    particle.style.left = '50%';
+    particle.style.top = '50%';
+    var angle = (i / 35) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    var dist = 80 + Math.random() * 180;
+    particle.style.setProperty('--cx', Math.cos(angle) * dist + 'px');
+    particle.style.setProperty('--cy', Math.sin(angle) * dist + 'px');
+    particle.style.setProperty('--cr', (Math.random() * 720 - 360) + 'deg');
+    particle.style.animationDelay = (Math.random() * 0.6) + 's';
+    particle.style.fontSize = (16 + Math.random() * 22) + 'px';
+    overlay.appendChild(particle);
+  }
+
+  document.body.appendChild(overlay);
+  setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 4200);
+}
+
 // ========== FEED MODAL ==========
 let currentFeedBaby = null;
 let currentFeedType = 'formula';
@@ -1478,6 +1616,15 @@ async function confirmFeed() {
   await saveRecord(recordDateKey, record);
   if (currentFeedType !== 'direct') {
     setLastFeed(currentFeedBaby, ts);
+  }
+
+  // Personal record check — show celebration if this is the highest ever
+  if (currentFeedType !== 'direct' && amount > (cachedMaxFeed[currentFeedBaby] || 0)) {
+    cachedMaxFeed[currentFeedBaby] = amount;
+    localStorage.setItem('babyFeed_cache', JSON.stringify({
+      records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin, maxFeed: cachedMaxFeed
+    }));
+    showRecordCelebration(currentFeedBaby, amount);
   }
 
   closeFeedModal();
