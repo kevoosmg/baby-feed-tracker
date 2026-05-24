@@ -753,21 +753,37 @@
   <div class="section" style="margin-top:20px;">
     <div class="section-title">每日营养</div>
     <div class="vitamin-row">
-      <div class="vitamin-item vitamin-ad" onclick="handleVitamin('ad')">
+      <div class="vitamin-item vitamin-ad" onclick="handleVitamin('ad','big')">
         <div class="vitamin-icon">🟠</div>
         <div class="vitamin-info">
-          <div class="vitamin-name">维生素 AD</div>
+          <div class="vitamin-name">维生素 AD · 大宝</div>
           <div class="vitamin-desc">早餐后 · 每天一粒</div>
         </div>
-        <span class="vitamin-status" id="vStatus-ad">加载中</span>
+        <span class="vitamin-status" id="vStatus-ad_big">加载中</span>
       </div>
-      <div class="vitamin-item vitamin-d3" onclick="handleVitamin('d3')">
+      <div class="vitamin-item vitamin-ad" onclick="handleVitamin('ad','small')">
+        <div class="vitamin-icon">🟠</div>
+        <div class="vitamin-info">
+          <div class="vitamin-name">维生素 AD · 小宝</div>
+          <div class="vitamin-desc">早餐后 · 每天一粒</div>
+        </div>
+        <span class="vitamin-status" id="vStatus-ad_small">加载中</span>
+      </div>
+      <div class="vitamin-item vitamin-d3" onclick="handleVitamin('d3','big')">
         <div class="vitamin-icon">🟡</div>
         <div class="vitamin-info">
-          <div class="vitamin-name">维生素 D3</div>
+          <div class="vitamin-name">维生素 D3 · 大宝</div>
           <div class="vitamin-desc">隔天一粒</div>
         </div>
-        <span class="vitamin-status" id="vStatus-d3">加载中</span>
+        <span class="vitamin-status" id="vStatus-d3_big">加载中</span>
+      </div>
+      <div class="vitamin-item vitamin-d3" onclick="handleVitamin('d3','small')">
+        <div class="vitamin-icon">🟡</div>
+        <div class="vitamin-info">
+          <div class="vitamin-name">维生素 D3 · 小宝</div>
+          <div class="vitamin-desc">隔天一粒</div>
+        </div>
+        <span class="vitamin-status" id="vStatus-d3_small">加载中</span>
       </div>
     </div>
   </div>
@@ -858,6 +874,10 @@
       <button class="diaper-type-tab active-pee" id="tab-pee" onclick="selectDiaperType(this, 'pee')">💧 小便</button>
       <button class="diaper-type-tab" id="tab-poo" onclick="selectDiaperType(this, 'poo')">💩 大便</button>
     </div>
+    <div class="form-group" style="margin-top:14px;">
+      <label class="form-label">时间（可调整）</label>
+      <input type="datetime-local" class="form-input" id="diaperTime">
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeDiaperModal()">取消</button>
       <button class="btn-confirm" id="diaperConfirmBtn" onclick="confirmDiaper()">确认记录</button>
@@ -873,6 +893,7 @@
     <div class="vitamin-confirm-info" id="vitaminInfo"></div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeVitaminModal()">取消</button>
+      <button class="btn-cancel" id="vitaminUndoBtn" onclick="undoVitamin()" style="display:none;background:#fff3cd;color:#856404;border:1px solid #ffc107;">撤销记录</button>
       <button class="btn-confirm" id="vitaminConfirmBtn" onclick="confirmVitamin()">已服用 ✓</button>
     </div>
   </div>
@@ -937,7 +958,9 @@ async function loadAllData() {
           feed_type: r.feed_type || 'formula',
           note: r.note || ''
         });
-        lf[r.baby] = Math.max(lf[r.baby] || 0, new Date(r.time).getTime());
+        if (r.feed_type !== 'direct') {
+          lf[r.baby] = Math.max(lf[r.baby] || 0, new Date(r.time).getTime());
+        }
       });
     }
     cachedLastFeed = lf;
@@ -1091,10 +1114,18 @@ async function setVitamin(type, dateKey) {
   if (!client) { showToast('连接未就绪'); return; }
   const { error } = await client.from('vitamin_records').upsert(
     { type, date_key: dateKey },
-    { onConflict: 'type,date_key' }
+    { onConflict: 'type' }
   );
   if (error) { showToast('记录失败: ' + error.message); return; }
   cachedVitamin[type] = dateKey;
+}
+
+async function deleteVitamin(type) {
+  const client = sb();
+  if (!client) { showToast('连接未就绪'); return; }
+  const { error } = await client.from('vitamin_records').delete().eq('type', type);
+  if (error) { showToast('撤销失败: ' + error.message); return; }
+  delete cachedVitamin[type];
 }
 
 // ========== UI HELPERS ==========
@@ -1198,19 +1229,19 @@ function updateTimer(baby) {
 
 // ========== VITAMIN ==========
 function getVitaminStatus(type) {
+  // type 形如 'ad_big', 'ad_small', 'd3_big', 'd3_small'
   const v = getVitamin();
   const today = todayKey();
+  const baseType = type.startsWith('ad') ? 'ad' : 'd3';
 
-  if (type === 'ad') {
-    if (v.ad === today) return 'done';
+  if (baseType === 'ad') {
+    if (v[type] === today) return 'done';
     return 'due';
   }
 
-  if (type === 'd3') {
-    if (v.d3 === today) return 'done';
-    if (!v.d3) return 'due';
-    // 用日期字符串直接比较，彻底避免时区问题
-    // 计算昨天的日期字符串
+  if (baseType === 'd3') {
+    if (v[type] === today) return 'done';
+    if (!v[type]) return 'due';
     const [ty, tm, td] = today.split('-').map(Number);
     let y = ty, m = tm, d = td - 1;
     if (d < 1) {
@@ -1219,49 +1250,63 @@ function getVitaminStatus(type) {
       d = new Date(y, m, 0).getDate();
     }
     const yesterdayKey = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    if (v.d3 === yesterdayKey) return 'tomorrow';
+    if (v[type] === yesterdayKey) return 'tomorrow';
     return 'due';
   }
 }
 
 function updateVitaminUI() {
-  const adStatus = getVitaminStatus('ad');
-  const d3Status = getVitaminStatus('d3');
-
-  const adEl = document.getElementById('vStatus-ad');
-  const d3El = document.getElementById('vStatus-d3');
-
+  const types = ['ad_big','ad_small','d3_big','d3_small'];
   function applyStatus(el, status) {
+    if (!el) return;
     el.className = 'vitamin-status';
-    if (status === 'done') { el.className += ' v-done'; el.textContent = '✓ 已服用'; }
-    else if (status === 'due') { el.className += ' v-due'; el.textContent = '⚡ 待服用'; }
-    else if (status === 'today') { el.className += ' v-today'; el.textContent = '💊 今天服用'; }
+    if (status === 'done')     { el.className += ' v-done';     el.textContent = '✓ 已服用'; }
+    else if (status === 'due') { el.className += ' v-due';      el.textContent = '⚡ 待服用'; }
     else if (status === 'tomorrow') { el.className += ' v-tomorrow'; el.textContent = '明天服用'; }
-    else { el.className += ' v-skip'; el.textContent = '今日跳过'; }
+    else                       { el.className += ' v-skip';     el.textContent = '今日跳过'; }
   }
-
-  applyStatus(adEl, adStatus);
-  applyStatus(d3El, d3Status);
+  types.forEach(t => {
+    applyStatus(document.getElementById(`vStatus-${t}`), getVitaminStatus(t));
+  });
 }
 
 let currentVitaminType = null;
-function handleVitamin(type) {
+function handleVitamin(baseType, baby) {
+  // type = 'ad_big' / 'ad_small' / 'd3_big' / 'd3_small'
+  const type = `${baseType}_${baby}`;
   const status = getVitaminStatus(type);
-  if (status === 'done') { showToast('今天已经服用了 ✓'); return; }
-  // tomorrow 状态不再拦截，允许手动记录（用户可自主决定）
-
   currentVitaminType = type;
+
   const titleEl = document.getElementById('vitaminModalTitle');
   const infoEl = document.getElementById('vitaminInfo');
+  const undoBtn = document.getElementById('vitaminUndoBtn');
+  const confirmBtn = document.getElementById('vitaminConfirmBtn');
+  const babyName = baby === 'big' ? '大宝' : '小宝';
+  const vitName = baseType === 'ad' ? '维生素 AD' : '维生素 D3';
 
-  if (type === 'ad') {
-    titleEl.textContent = '记录维生素 AD';
-    infoEl.innerHTML = `<strong>维生素 AD</strong>（伊可新等）<br>每天早餐后第一次喂奶后服用一粒`;
-  } else {
+  titleEl.textContent = `记录 ${vitName} · ${babyName}`;
+
+  if (status === 'done') {
+    infoEl.innerHTML = `<strong>${vitName}</strong> · ${babyName}<br>今天已记录，可以撤销`;
+    undoBtn.style.display = '';
+    confirmBtn.style.display = 'none';
+  } else if (status === 'tomorrow') {
     const v = getVitamin();
-    const lastD3 = v.d3 ? `上次服用：${v.d3}` : '首次记录';
-    titleEl.textContent = '记录维生素 D3';
-    infoEl.innerHTML = `<strong>维生素 D3</strong><br>隔天一粒 · ${lastD3}`;
+    infoEl.innerHTML = `<strong>${vitName}</strong> · ${babyName}<br>隔天一粒，上次 ${v[type]}，今天跳过`;
+    undoBtn.style.display = 'none';
+    confirmBtn.style.display = '';
+    confirmBtn.textContent = '仍然记录';
+  } else {
+    if (baseType === 'ad') {
+      infoEl.innerHTML = `<strong>${vitName}</strong> · ${babyName}<br>每天早餐后第一次喂奶后服用一粒`;
+    } else {
+      const v = getVitamin();
+      const lastKey = v[type] ? `上次服用：${v[type]}` : '首次记录';
+      infoEl.innerHTML = `<strong>${vitName}</strong> · ${babyName}<br>隔天一粒 · ${lastKey}`;
+    }
+    undoBtn.style.display = 'none';
+    confirmBtn.style.display = '';
+    confirmBtn.textContent = '已服用 ✓';
   }
 
   document.getElementById('vitaminModal').classList.add('show');
@@ -1275,8 +1320,18 @@ async function confirmVitamin() {
   await setVitamin(currentVitaminType, todayKey());
   updateVitaminUI();
   closeVitaminModal();
-  const name = currentVitaminType === 'ad' ? '维生素AD' : '维生素D3';
-  showToast(`${name} 已记录 ✓`);
+  const isAd = currentVitaminType.startsWith('ad');
+  const isBig = currentVitaminType.endsWith('big');
+  showToast(`${isAd ? '维生素AD' : '维生素D3'} · ${isBig ? '大宝' : '小宝'} 已记录 ✓`);
+}
+async function undoVitamin() {
+  if (!currentVitaminType) return;
+  await deleteVitamin(currentVitaminType);
+  updateVitaminUI();
+  closeVitaminModal();
+  const isAd = currentVitaminType.startsWith('ad');
+  const isBig = currentVitaminType.endsWith('big');
+  showToast(`${isAd ? '维生素AD' : '维生素D3'} · ${isBig ? '大宝' : '小宝'} 已撤销`);
 }
 
 // ========== CELEBRATION ==========
@@ -1416,6 +1471,7 @@ function openDiaperModal(baby) {
   document.getElementById('tab-pee').classList.remove('active-poo');
   document.getElementById('tab-poo').classList.remove('active-pee');
   document.getElementById('tab-poo').classList.add('active-poo');
+  document.getElementById('diaperTime').value = toLocalDatetimeValue(Date.now());
   document.getElementById('diaperModal').classList.add('show');
 }
 function closeDiaperModal() {
@@ -1430,15 +1486,16 @@ function selectDiaperType(btn, type) {
 }
 async function confirmDiaper() {
   if (!currentDiaperBaby) return;
-  const now = Date.now();
-  const today = todayKey();
-  const recordDate = new Date(now);
+  const timeRaw = document.getElementById('diaperTime').value;
+  if (!timeRaw) { showToast('请选择时间'); return; }
+  const ts = new Date(timeRaw).getTime();
+  const recordDate = new Date(ts);
   const recordDateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth()+1).padStart(2,'0')}-${String(recordDate.getDate()).padStart(2,'0')}`;
 
   const record = {
     baby: currentDiaperBaby,
     type: currentDiaperType,
-    time: now
+    time: ts
   };
 
   await saveDiaperRecord(recordDateKey, record);
@@ -1450,7 +1507,6 @@ async function confirmDiaper() {
   const typeLabel = currentDiaperType === 'pee' ? '小便' : '大便';
   showToast(`${name} ${typeLabel} ✓`);
 
-  // Celebration!
   showCelebration();
 }
 
@@ -1619,11 +1675,9 @@ function copyToClipboard() {
   }
 
   lines.push('───────────────────');
-  const adDone = vitamin.ad === today;
-  const d3Status = getVitaminStatus('d3');
-  const d3Text = d3Status === 'done' ? '✓ 已服用' : (d3Status === 'tomorrow' ? '（今日跳过）' : '💊 今天服用');
-  lines.push(`维生素AD：${adDone ? '✓ 已服用' : '✗ 未服用'}`);
-  lines.push(`维生素D3：${d3Text}`);
+  const vitStatus = (t) => { const s = getVitaminStatus(t); return s === 'done' ? '✓' : (s === 'tomorrow' ? '跳过' : '✗'); };
+  lines.push(`维生素AD：大宝${vitStatus('ad_big')} · 小宝${vitStatus('ad_small')}`);
+  lines.push(`维生素D3：大宝${vitStatus('d3_big')} · 小宝${vitStatus('d3_small')}`);
 
   const text = lines.join('\n');
 
