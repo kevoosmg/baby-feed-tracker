@@ -511,13 +511,16 @@
   /* Celebration Overlay */
   .celebration-overlay {
     position: fixed;
-    inset: 0;
-    z-index: 350;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 999;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    background: rgba(0,0,0,0.01);
+    opacity: 0;
     animation: celeFade 2.8s ease forwards;
+    will-change: opacity;
   }
   .celebration-text {
     font-size: 26px;
@@ -1051,7 +1054,9 @@ async function saveRecord(dateKey, record) {
       note: record.note || ''
     });
     cachedRecords[dateKey].sort((a, b) => a.time - b.time);
-    cachedLastFeed[record.baby] = record.time;
+    if (record.feed_type !== 'direct') {
+      cachedLastFeed[record.baby] = record.time;
+    }
   }
 }
 
@@ -1112,10 +1117,10 @@ function getVitamin() {
 async function setVitamin(type, dateKey) {
   const client = sb();
   if (!client) { showToast('连接未就绪'); return; }
-  const { error } = await client.from('vitamin_records').upsert(
-    { type, date_key: dateKey },
-    { onConflict: 'type' }
-  );
+  // Delete existing record with same type first (ignore if not found)
+  const { error: delErr } = await client.from('vitamin_records').delete().eq('type', type);
+  // insert the new record
+  const { error } = await client.from('vitamin_records').insert({ type, date_key: dateKey });
   if (error) { showToast('记录失败: ' + error.message); return; }
   cachedVitamin[type] = dateKey;
 }
@@ -1444,14 +1449,14 @@ async function confirmFeed() {
   if (currentFeedType !== 'direct') {
     updateTimer(currentFeedBaby);
   }
-  renderTodayLog();
+  try { renderTodayLog(); } catch(e) {}
 
   const name = currentFeedBaby === 'big' ? '大宝' : '小宝';
   const typeLabel = currentFeedType === 'formula' ? '奶粉' : (currentFeedType === 'breast' ? '母乳' : '亲喂');
   const amountText = currentFeedType === 'direct' ? '' : `${amount}ml `;
   showToast(`${name} ${typeLabel} ${amountText}✓`);
 
-  showCelebration();
+  try { showCelebration(); } catch(e) { console.warn('celebration error', e); }
 
   if (Notification.permission === 'default') {
     Notification.requestPermission();
@@ -1501,13 +1506,13 @@ async function confirmDiaper() {
   await saveDiaperRecord(recordDateKey, record);
 
   closeDiaperModal();
-  renderTodayLog();
+  try { renderTodayLog(); } catch(e) {}
 
   const name = currentDiaperBaby === 'big' ? '大宝' : '小宝';
   const typeLabel = currentDiaperType === 'pee' ? '小便' : '大便';
   showToast(`${name} ${typeLabel} ✓`);
 
-  showCelebration();
+  try { showCelebration(); } catch(e) { console.warn('celebration error', e); }
 }
 
 // ========== LOG RENDER ==========
@@ -1601,11 +1606,11 @@ async function delFeedRecord(dateKey, idx) {
   const ok = await deleteRecord(dateKey, idx);
   if (ok === false) return;
 
-  // Recalculate last feed for each baby
+  // Recalculate last feed for each baby (exclude direct feeds)
   const allRecords = Object.values(cachedRecords).flat().sort((a, b) => b.time - a.time);
   cachedLastFeed = {};
   ['big', 'small'].forEach(baby => {
-    const found = allRecords.find(r => r.baby === baby);
+    const found = allRecords.find(r => r.baby === baby && r.feed_type !== 'direct');
     if (found) cachedLastFeed[baby] = found.time;
   });
 
