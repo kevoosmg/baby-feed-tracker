@@ -985,12 +985,19 @@ async function loadAllData() {
       });
     }
 
-    // Load vitamin records
+    // Load vitamin records — merge, never reset (to avoid race with realtime)
     const { data: vits } = await client.from('vitamin_records').select('*');
-    cachedVitamin = {};
+    const serverVitaminTypes = new Set();
     if (vits) {
-      vits.forEach(v => { cachedVitamin[v.type] = v.date_key; });
+      vits.forEach(v => {
+        cachedVitamin[v.type] = v.date_key;
+        serverVitaminTypes.add(v.type);
+      });
     }
+    // Remove cached types not present on server (deleted elsewhere)
+    Object.keys(cachedVitamin).forEach(k => {
+      if (!serverVitaminTypes.has(k)) delete cachedVitamin[k];
+    });
 
     localStorage.setItem('babyFeed_cache', JSON.stringify({
       records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
@@ -1126,6 +1133,8 @@ async function setVitamin(type, dateKey) {
 }
 
 async function deleteVitamin(type) {
+  // Clear cache immediately to prevent realtime sync race
+  delete cachedVitamin[type];
   const client = sb();
   if (!client) { showToast('连接未就绪'); return; }
   const { error } = await client.from('vitamin_records').delete().eq('type', type);
