@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>宝宝喂奶 - 手表版</title>
+<style>
+  :root {
+    --bg: #0D0D0D;
+    --card: #1A1A1A;
+    --text: #F0F0F0;
+    --text-dim: #888;
+    --accent-pink: #FF6B9D;
+    --accent-blue: #4FACFE;
+    --accent-gold: #FFD700;
+    --danger: #FF4757;
+    --radius: 24px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 12px 10px 20px; }
+
+  /* === Baby Tabs === */
+  .baby-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .baby-tab {
+    flex: 1;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--text-dim);
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .baby-tab.active-big {
+    background: var(--accent-pink);
+    color: #fff;
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 20px rgba(255,107,157,0.4);
+  }
+  .baby-tab.active-small {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(79,172,254,0.4);
+  }
+
+  /* === Timer Ring === */
+  .timer-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    position: relative;
+  }
+  .timer-ring-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 8px;
+  }
+  .timer-ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .timer-ring-bg {
+    fill: none;
+    stroke: #2A2A2A;
+    stroke-width: 8;
+  }
+  .timer-ring-fg {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s ease;
+  }
+  .timer-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .timer-value {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .timer-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* === Feed Type Tabs === */
+  .feed-types {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    justify-content: center;
+  }
+  .feed-type-btn {
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--card);
+    color: var(--text-dim);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .feed-type-btn.active {
+    background: var(--accent-gold);
+    color: #111;
+    font-weight: 700;
+  }
+
+  /* === Record Button === */
+  .record-area {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .amount-display {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 10px;
+    text-align: center;
+    flex: 1;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent-gold);
+    cursor: pointer;
+  }
+  .amount-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .amt-btn {
+    width: 44px;
+    height: 36px;
+    border-radius: 14px;
+    border: none;
+    background: var(--card);
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .amt-btn:active { background: #333; }
+  .record-btn {
+    flex: 1;
+    padding: 20px 0;
+    border-radius: var(--radius);
+    border: none;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.15s;
+    letter-spacing: 2px;
+  }
+  .record-btn.big { background: var(--accent-pink); }
+  .record-btn.big:active { background: #e05580; }
+  .record-btn.small { background: var(--accent-blue); }
+  .record-btn.small:active { background: #3d8fd6; }
+
+  /* === Presets === */
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .preset-chip {
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid #333;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-chip:active { background: #333; }
+
+  /* === Last Feed Info === */
+  .last-feed-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .last-feed-label { font-size: 13px; color: var(--text-dim); }
+  .last-feed-value { font-size: 16px; font-weight: 700; }
+
+  /* === Vitamin === */
+  .vitamin-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .vitamin-chip {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    border-radius: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--card);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .vitamin-chip.done { background: #1A3A2A; color: #43E97B; border: 1px solid #43E97B; }
+
+  /* === Toast === */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-gold);
+    color: #111;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 700;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* === Connection indicator === */
+  .conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .conn-dot.on { background: #43E97B; }
+  .conn-dot.off { background: var(--danger); }
+  .conn-status {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 12px;
+  }
+
+  /* Loading */
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid #333;
+    border-top-color: var(--accent-gold);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Baby Tabs -->
+<div class="baby-tabs">
+  <div class="baby-tab active-big" id="tabBig" onclick="switchBaby('big')">大宝</div>
+  <div class="baby-tab" id="tabSmall" onclick="switchBaby('small')">小宝</div>
+</div>
+
+<!-- Timer -->
+<div class="timer-section" id="timerSection">
+  <div class="timer-ring-wrap">
+    <svg viewBox="0 0 200 200">
+      <circle class="timer-ring-bg" cx="100" cy="100" r="92"/>
+      <circle id="timerRing" class="timer-ring-fg" cx="100" cy="100" r="92"
+        stroke-dasharray="578" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-center">
+      <div class="timer-value" id="timerDisplay">--</div>
+      <div class="timer-label" id="timerLabel">距上次喂奶</div>
+    </div>
+  </div>
+</div>
+
+<!-- Feed Types -->
+<div class="feed-types">
+  <button class="feed-type-btn active" id="ftFormula" onclick="setFeedType('formula')">奶粉</button>
+  <button class="feed-type-btn" id="ftBreast" onclick="setFeedType('breast')">母乳</button>
+  <button class="feed-type-btn" id="ftDirect" onclick="setFeedType('direct')">亲喂</button>
+</div>
+
+<!-- Record -->
+<div class="record-area" id="amountArea">
+  <div class="amount-display" id="amountDisplay" onclick="cycleAmount()">120<span style="font-size:15px;font-weight:400">ml</span></div>
+  <div class="amount-controls">
+    <button class="amt-btn" onclick="adjustAmount(10)">+</button>
+    <button class="amt-btn" onclick="adjustAmount(-10)">−</button>
+  </div>
+  <button class="record-btn big" id="recordBtn" onclick="recordFeed()">记录</button>
+</div>
+
+<!-- Presets -->
+<div class="presets">
+  <span class="preset-chip" onclick="setAmount(60)">60</span>
+  <span class="preset-chip" onclick="setAmount(90)">90</span>
+  <span class="preset-chip" onclick="setAmount(120)">120</span>
+  <span class="preset-chip" onclick="setAmount(150)">150</span>
+  <span class="preset-chip" onclick="setAmount(180)">180</span>
+</div>
+
+<!-- Last Feed -->
+<div class="last-feed-card">
+  <span class="last-feed-label">上次喂奶</span>
+  <span class="last-feed-value" id="lastFeedInfo">--</span>
+</div>
+
+<!-- Vitamin -->
+<div class="vitamin-row">
+  <div class="vitamin-chip" id="vitAD" onclick="toggleVitamin('AD')">AD <span id="vitADStatus"></span></div>
+  <div class="vitamin-chip" id="vitD3" onclick="toggleVitamin('D3')">D3 <span id="vitD3Status"></span></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Connection -->
+<div class="conn-status">
+  <span class="conn-dot off" id="connDot"></span>
+  <span id="connText">离线</span>
+</div>
+
+<script>
+// ========== CONFIG ==========
+const SUPABASE_URL = 'https://xfkixutmglsbxlimkbtn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8kzHQn4rDaaQ-2gLN91hcA_9_0bvRWN';
+const FEED_INTERVAL = 2.5 * 60 * 60 * 1000; // 2.5 hours
+
+// ========== STATE ==========
+let currentBaby = 'big';
+let feedType = 'formula';
+let amount = 120;
+let lastFeed = {}; // { big: timestamp, small: timestamp }
+let connected = false;
+
+const CIRCUMFERENCE = 2 * Math.PI * 92; // ~578
+const AMOUNTS = [60, 90, 120, 150, 180, 200, 240];
+
+// ========== SUPABASE ==========
+function sb() {
+  try { return supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { return null; }
+}
+
+async function loadData() {
+  // Load from localStorage first
+  try {
+    const c = JSON.parse(localStorage.getItem('babyFeed_watch_cache') || '{}');
+    if (c.lastFeed) lastFeed = c.lastFeed;
+  } catch(e) {}
+
+  // Try Supabase
+  const client = sb();
+  if (!client) { setConn(false); return; }
+  try {
+    const { data: feeds, error } = await client.from('feed_records')
+      .select('baby,time,feed_type').order('time', { ascending: false }).limit(100);
+    if (error) { setConn(false); return; }
+    const lf = {};
+    feeds.forEach(r => {
+      if (r.feed_type !== 'direct' && !lf[r.baby]) {
+        lf[r.baby] = new Date(r.time).getTime();
+      }
+    });
+    lastFeed = lf;
+    // Cache
+    localStorage.setItem('babyFeed_watch_cache', JSON.stringify({ lastFeed: lf, ts: Date.now() }));
+    setConn(true);
+  } catch(e) { setConn(false); }
+}
+
+function setConn(on) {
+  connected = on;
+  document.getElementById('connDot').className = 'conn-dot ' + (on ? 'on' : 'off');
+  document.getElementById('connText').textContent = on ? '在线' : '离线';
+}
+
+// ========== TIMER ==========
+function updateTimer() {
+  const now = Date.now();
+  const lf = lastFeed[currentBaby] || 0;
+  const elapsed = now - lf;
+  const remaining = Math.max(0, FEED_INTERVAL - elapsed);
+  const elapsedMin = Math.floor(elapsed / 60000);
+  const remainingMin = Math.floor(remaining / 60000);
+
+  const display = document.getElementById('timerDisplay');
+  const label = document.getElementById('timerLabel');
+  const ring = document.getElementById('timerRing');
+
+  if (!lf) {
+    display.textContent = '--:--';
+    display.style.color = '#888';
+    label.textContent = '暂无记录';
+    ring.style.strokeDashoffset = '0';
+    return;
+  }
+
+  // Format
+  const h = Math.floor(elapsedMin / 60);
+  const m = elapsedMin % 60;
+  display.textContent = h + ':' + String(m).padStart(2, '0');
+
+  if (remaining <= 0) {
+    // Overdue
+    display.style.color = '#FF4757';
+    label.textContent = '该喂奶了！';
+    ring.setAttribute('stroke-dasharray', CIRCUMFERENCE);
+    ring.setAttribute('stroke-dashoffset', '0');
+    ring.style.stroke = '#FF4757';
+  } else {
+    // Normal
+    const pct = 1 - (remaining / FEED_INTERVAL);
+    display.style.color = currentBaby === 'big' ? '#FF6B9D' : '#4FACFE';
+    label.textContent = '距上次喂奶';
+    ring.setAttribute('stroke-dasharray', CIRCUMFERENCE);
+    ring.setAttribute('stroke-dashoffset', CIRCUMFERENCE * (1 - pct));
+    ring.style.stroke = currentBaby === 'big' ? '#FF6B9D' : '#4FACFE';
+  }
+
+  // Update last feed card
+  const lfInfo = document.getElementById('lastFeedInfo');
+  if (lf) {
+    const d = new Date(lf);
+    lfInfo.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  } else {
+    lfInfo.textContent = '--';
+  }
+}
+
+// ========== ACTIONS ==========
+function switchBaby(baby) {
+  currentBaby = baby;
+  document.getElementById('tabBig').className = 'baby-tab ' + (baby === 'big' ? 'active-big' : '');
+  document.getElementById('tabSmall').className = 'baby-tab ' + (baby === 'small' ? 'active-small' : '');
+  const btn = document.getElementById('recordBtn');
+  btn.className = 'record-btn ' + (baby === 'big' ? 'big' : 'small');
+  btn.textContent = (baby === 'big' ? '大宝' : '小宝') + ' 记录';
+  updateTimer();
+}
+
+function setFeedType(type) {
+  feedType = type;
+  ['ftFormula','ftBreast','ftDirect'].forEach(id => {
+    document.getElementById(id).className = 'feed-type-btn';
+  });
+  document.getElementById('ft' + type.charAt(0).toUpperCase() + type.slice(1)).className = 'feed-type-btn active';
+  document.getElementById('amountArea').style.display = type === 'direct' ? 'none' : '';
+}
+
+function setAmount(v) { amount = v; updateAmountDisplay(); }
+function adjustAmount(delta) { amount = Math.max(10, Math.min(500, amount + delta)); updateAmountDisplay(); }
+function updateAmountDisplay() {
+  document.getElementById('amountDisplay').innerHTML = amount + '<span style="font-size:15px;font-weight:400">ml</span>';
+}
+function cycleAmount() {
+  const idx = AMOUNTS.indexOf(amount);
+  amount = AMOUNTS[(idx + 1) % AMOUNTS.length];
+  updateAmountDisplay();
+}
+
+async function recordFeed() {
+  const baby = currentBaby;
+  const client = sb();
+  const ts = Date.now();
+
+  const record = {
+    baby: baby,
+    time: new Date(ts).toISOString(),
+    amount: feedType === 'direct' ? 0 : amount,
+    feed_type: feedType
+  };
+
+  // Update local immediately
+  if (feedType !== 'direct') {
+    lastFeed[baby] = ts;
+  }
+  localStorage.setItem('babyFeed_watch_cache', JSON.stringify({ lastFeed: lastFeed, ts: ts }));
+  updateTimer();
+
+  // Push to Supabase
+  if (client) {
+    try {
+      const { error } = await client.from('feed_records').insert(record);
+      if (error) { showToast('同步失败: ' + error.message); return; }
+      setConn(true);
+    } catch(e) { showToast('离线记录已保存'); setConn(false); }
+  }
+
+  const name = baby === 'big' ? '大宝' : '小宝';
+  const typeLabel = feedType === 'formula' ? '奶粉' : (feedType === 'breast' ? '母乳' : '亲喂');
+  const amountText = feedType === 'direct' ? '' : amount + 'ml ';
+  showToast(name + ' ' + typeLabel + ' ' + amountText + '✓');
+}
+
+function toggleVitamin(type) {
+  const el = document.getElementById('vit' + type);
+  const status = document.getElementById('vit' + type + 'Status');
+  const nowDone = !el.classList.contains('done');
+  if (nowDone) {
+    el.classList.add('done');
+    status.textContent = '✓';
+  } else {
+    el.classList.remove('done');
+    status.textContent = '';
+  }
+  // Save to localStorage
+  const cache = JSON.parse(localStorage.getItem('babyFeed_watch_cache') || '{}');
+  cache['vit' + type] = nowDone;
+  localStorage.setItem('babyFeed_watch_cache', JSON.stringify(cache));
+}
+
+function restoreVitamin() {
+  try {
+    const c = JSON.parse(localStorage.getItem('babyFeed_watch_cache') || '{}');
+    if (c.vitAD) { document.getElementById('vitAD').classList.add('done'); document.getElementById('vitADStatus').textContent = '✓'; }
+    if (c.vitD3) { document.getElementById('vitD3').classList.add('done'); document.getElementById('vitD3Status').textContent = '✓'; }
+  } catch(e) {}
+}
+
+// ========== TOAST ==========
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ========== TIMER LOOP ==========
+setInterval(updateTimer, 1000);
+
+// ========== INIT ==========
+async function init() {
+  await loadData();
+  updateTimer();
+  restoreVitamin();
+  switchBaby(currentBaby);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// ========== SUPABASE LIB (inline min) ==========
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</body>
+</html>
