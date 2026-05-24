@@ -940,7 +940,11 @@ function loadFromCache() {
   } catch(e) { cachedRecords = {}; cachedDiaper = {}; cachedLastFeed = {}; cachedVitamin = {}; }
 }
 
+let _loadAllDataPromise = null;
 async function loadAllData() {
+  // Prevent concurrent executions — if already loading, wait for it
+  if (_loadAllDataPromise) { await _loadAllDataPromise; return; }
+  _loadAllDataPromise = (async () => {
   const client = sb();
   if (!client) { loadFromCache(); return; }
   try {
@@ -1006,6 +1010,8 @@ async function loadAllData() {
     console.warn('Supabase load failed, using cache', e);
     loadFromCache();
   }
+  })();
+  try { await _loadAllDataPromise; } finally { _loadAllDataPromise = null; }
 }
 
 function setupRealtime() {
@@ -1125,21 +1131,38 @@ async function setVitamin(type, dateKey) {
   const client = sb();
   if (!client) { showToast('连接未就绪'); return; }
   // Delete existing record with same type first (ignore if not found)
-  const { error: delErr } = await client.from('vitamin_records').delete().eq('type', type);
+  await client.from('vitamin_records').delete().eq('type', type);
   // insert the new record
-  const { error } = await client.from('vitamin_records').insert({ type, date_key: dateKey });
+  const { data, error } = await client.from('vitamin_records').insert({ type, date_key: dateKey }).select();
   if (error) { showToast('记录失败: ' + error.message); return; }
   cachedVitamin[type] = dateKey;
+  // Persist immediately
+  localStorage.setItem('babyFeed_cache', JSON.stringify({
+    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+  }));
 }
 
 async function deleteVitamin(type) {
-  // Clear cache immediately to prevent realtime sync race
+  // Clear cache immediately
   delete cachedVitamin[type];
   const client = sb();
   if (!client) { showToast('连接未就绪'); return; }
-  const { error } = await client.from('vitamin_records').delete().eq('type', type);
+  // Use .select() to verify rows were actually deleted (RLS may silently block)
+  const { data, error } = await client.from('vitamin_records').delete().eq('type', type).select();
   if (error) { showToast('撤销失败: ' + error.message); return; }
+  // Double-check: query server to confirm record is gone
+  const { data: check } = await client.from('vitamin_records').select('*').eq('type', type);
+  if (check && check.length > 0) {
+    // Record still exists — delete was blocked (likely RLS)
+    showToast('撤销失败：数据库权限不足');
+    cachedVitamin[type] = check[0].date_key; // restore from server
+    return;
+  }
+  // Force cache clean and persist immediately to prevent stale localStorage
   delete cachedVitamin[type];
+  localStorage.setItem('babyFeed_cache', JSON.stringify({
+    records: cachedRecords, diaper: cachedDiaper, lastFeed: cachedLastFeed, vitamin: cachedVitamin
+  }));
 }
 
 // ========== UI HELPERS ==========
@@ -1332,7 +1355,8 @@ function closeVitaminModal() {
 async function confirmVitamin() {
   if (!currentVitaminType) return;
   await setVitamin(currentVitaminType, todayKey());
-  updateVitaminUI();
+  await loadAllData();
+  refreshAll();
   closeVitaminModal();
   const isAd = currentVitaminType.startsWith('ad');
   const isBig = currentVitaminType.endsWith('big');
@@ -1341,7 +1365,9 @@ async function confirmVitamin() {
 async function undoVitamin() {
   if (!currentVitaminType) return;
   await deleteVitamin(currentVitaminType);
-  updateVitaminUI();
+  // Force fresh reload from server to avoid realtime race
+  await loadAllData();
+  refreshAll();
   closeVitaminModal();
   const isAd = currentVitaminType.startsWith('ad');
   const isBig = currentVitaminType.endsWith('big');
